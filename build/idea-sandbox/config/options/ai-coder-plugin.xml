@@ -1,0 +1,15 @@
+<application>
+  <component name="AICoderSettings">
+    <option name="activeProviderId" value="59f07b03-4ffb-4edf-bde6-ef69246d2f95" />
+    <option name="providers">
+      <list>
+        <ProviderConfig>
+          <option name="baseUrl" value="https://api.deepseek.com/" />
+          <option name="id" value="59f07b03-4ffb-4edf-bde6-ef69246d2f95" />
+          <option name="model" value="deepseek-v4-flash" />
+          <option name="name" value="deepseek" />
+        </ProviderConfig>
+      </list>
+    </option>
+  </component>
+</application>

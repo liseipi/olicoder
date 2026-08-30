@@ -1,0 +1,40 @@
+<idea-plugin>
+    <id>com.aicoder.plugin</id>
+    <name>AI Coder</name>
+    <vendor email="you@example.com" url="https://example.com">YourName</vendor>
+
+    <description><![CDATA[
+        一个多模型 AI 编程助手：用户自选厂商（OpenAI 兼容协议 / Anthropic / Gemini），
+        自填 Base URL 和 API Key，本地加密存储 Key，不经过任何第三方服务器中转。
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- 应用级设置持久化 -->
+        <applicationService serviceImplementation="com.aicoder.plugin.settings.AiCoderSettingsState"/>
+
+        <!-- 设置页：Settings/Preferences -> Tools -> AI Coder -->
+        <applicationConfigurable
+                parentId="tools"
+                instance="com.aicoder.plugin.settings.AiCoderSettingsConfigurable"
+                id="com.aicoder.plugin.settings.AiCoderSettingsConfigurable"
+                displayName="AI Coder"/>
+
+        <!-- 右侧/底部工具窗口：聊天面板 -->
+        <toolWindow
+                id="AI Coder"
+                anchor="right"
+                factoryClass="com.aicoder.plugin.toolwindow.ChatToolWindowFactory"
+                icon="/icons/aicoder.svg"/>
+    </extensions>
+
+    <actions>
+        <action id="com.aicoder.plugin.actions.SendSelectionToChatAction"
+                class="com.aicoder.plugin.actions.SendSelectionToChatAction"
+                text="发送选中代码到 AI 对话"
+                description="把当前选中的代码发送到 AI Coder 对话窗口">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+        </action>
+    </actions>
+</idea-plugin>
