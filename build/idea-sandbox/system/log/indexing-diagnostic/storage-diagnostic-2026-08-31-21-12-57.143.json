@@ -1,17 +1,17 @@
 {
   "pageCacheStats" : {
     "cachedChannelsStatistics" : {
-      "hit" : 0,
+      "hit" : 3,
       "miss" : 0,
       "load" : 90,
       "capacity" : 400
     },
-    "uncachedFileAccess" : 120,
+    "uncachedFileAccess" : 122,
     "maxRegisteredFiles" : 555,
     "maxCacheSizeInBytes" : 212877312,
     "totalCachedSizeInBytes" : 212877312,
     "pageHits" : 0,
-    "pageFastCacheHits" : 4412,
+    "pageFastCacheHits" : 4634,
     "pageLoadsAboveSizeThreshold" : 0,
     "regularPageLoads" : 208,
     "disposedBuffers" : 3,
@@ -4491,23 +4491,23 @@
       "$USER_HOME$/www/android/ai-coder-plugin/build/idea-sandbox/system/icon-cache/icon.db" : {
         "persistentEnumeratorStatistics" : {
           "collisions" : 0,
-          "values" : 458,
-          "dataFileSizeInBytes" : 7328,
-          "storageSizeInBytes" : 3792,
+          "values" : 459,
+          "dataFileSizeInBytes" : 7344,
+          "storageSizeInBytes" : 3800,
           "btreeStatistics" : {
             "pages" : 1,
-            "elements" : 458,
+            "elements" : 459,
             "height" : 1,
             "moves" : 0,
             "leafPages" : 1,
             "maxSearchStepsInRequest" : 2,
-            "searchRequests" : 1976,
-            "searchSteps" : 144,
+            "searchRequests" : 2035,
+            "searchSteps" : 148,
             "pageCapacity" : 32768,
             "sizeInBytes" : 32768
           }
         },
-        "valueStorageSizeInBytes" : 11078064
+        "valueStorageSizeInBytes" : 11082165
       }
     }
   }

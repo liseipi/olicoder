@@ -62,10 +62,12 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
     private val pendingCodeBlocks = mutableListOf<String>()
 
     // 单代码块场景：自动应用到文件后的变更记录，供"保留/撤销/查看变更"使用
+    private enum class ChangeState { PENDING, KEPT, UNDONE }
     private data class PendingChange(
         val virtualFile: VirtualFile,
         val before: String,
-        val after: String
+        val after: String,
+        var state: ChangeState = ChangeState.PENDING
     )
     private val pendingChanges = mutableListOf<PendingChange>()
 
@@ -638,16 +640,51 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
 
         val changeId = pendingChanges.size
         pendingChanges.add(PendingChange(targetFile, beforeContent, newContent))
-        messageBuffer.append(
-            """<table width="100%"><tr><td align="left">
+        messageBuffer.append(renderChangeActionBar(changeId))
+    }
+
+    /** 渲染某个 change 的操作条（保留/撤销/查看变更），根据当前状态决定链接是否可点。
+     *  用注释标记包起来，方便之后原地替换成"已处理"的样子。 */
+    private fun renderChangeActionBar(changeId: Int): String {
+        val change = pendingChanges[changeId]
+        val fileName = escapeHtml(change.virtualFile.name)
+
+        val (headline, keepPart, undoPart) = when (change.state) {
+            ChangeState.PENDING -> Triple(
+                "✅ 已自动应用修改到 <b>$fileName</b>",
+                "<a href=\"keep:$changeId\">保留</a>",
+                "<a href=\"undo:$changeId\">撤销</a>"
+            )
+            ChangeState.KEPT -> Triple(
+                "✅ 已保留对 <b>$fileName</b> 的修改",
+                "<span style=\"color:#777;\">保留</span>",
+                "<span style=\"color:#777;\">撤销</span>"
+            )
+            ChangeState.UNDONE -> Triple(
+                "↩️ 已撤销对 <b>$fileName</b> 的这一步修改",
+                "<span style=\"color:#777;\">保留</span>",
+                "<span style=\"color:#777;\">撤销</span>"
+            )
+        }
+        val diffPart = "<a href=\"diff:$changeId\">查看变更</a>"
+
+        return """<!--CB$changeId--><table width="100%"><tr><td align="left">
                 <div style="margin:2px 0 10px 6px; font-size:11px;">
-                  ✅ 已自动应用修改到 <b>${escapeHtml(targetFile.name)}</b> &nbsp;
-                  <a href="keep:$changeId">保留</a> &nbsp;|&nbsp;
-                  <a href="undo:$changeId">撤销</a> &nbsp;|&nbsp;
-                  <a href="diff:$changeId">查看变更</a>
-                </div>
-              </td></tr></table>"""
-        )
+                  $headline &nbsp;
+                  $keepPart &nbsp;|&nbsp;
+                  $undoPart &nbsp;|&nbsp;
+                  $diffPart
+                </div></td></tr></table><!--/CB$changeId-->"""
+    }
+
+    /** 在 messageBuffer 里原地找到某个 change 的操作条并替换成最新状态（比如从"待处理"变成"已保留"） */
+    private fun refreshChangeActionBarInBuffer(changeId: Int) {
+        val startMarker = "<!--CB$changeId-->"
+        val endMarker = "<!--/CB$changeId-->"
+        val start = messageBuffer.indexOf(startMarker)
+        val end = messageBuffer.indexOf(endMarker)
+        if (start < 0 || end < 0) return
+        messageBuffer.replace(start, end + endMarker.length, renderChangeActionBar(changeId))
     }
 
     private fun renderAssistantBubble(content: String): String {
@@ -706,11 +743,16 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
 
     private fun handleKeepChange(idx: Int) {
         val change = pendingChanges.getOrNull(idx) ?: return
-        appendSystemNotice("已保留对 ${change.virtualFile.name} 的修改")
+        if (change.state != ChangeState.PENDING) return // 已经处理过了，忽略重复点击
+        change.state = ChangeState.KEPT
+        refreshChangeActionBarInBuffer(idx)
+        renderTranscript()
     }
 
     private fun handleUndoChange(idx: Int) {
         val change = pendingChanges.getOrNull(idx) ?: return
+        if (change.state != ChangeState.PENDING) return // 已经处理过了，忽略重复点击
+
         val fileEditorManager = FileEditorManager.getInstance(project)
 
         // 撤销要基于"这个文件自己的撤销历史栈"来做，而不是简单粗暴地把整份文件重置成旧快照，
@@ -728,7 +770,9 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         val undoManager = UndoManager.getInstance(project)
         if (undoManager.isUndoAvailable(fileEditor)) {
             undoManager.undo(fileEditor)
-            appendSystemNotice("已撤销对 ${change.virtualFile.name} 的这一步修改")
+            change.state = ChangeState.UNDONE
+            refreshChangeActionBarInBuffer(idx)
+            renderTranscript()
         } else {
             appendSystemNotice("这一步修改已经没法撤销了（可能已经撤销过，或者后面又有新的改动）")
         }
