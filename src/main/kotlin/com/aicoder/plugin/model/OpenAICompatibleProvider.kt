@@ -1,5 +1,7 @@
 package com.aicoder.plugin.model
 
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import java.net.URI
 import java.net.http.HttpClient
@@ -38,6 +40,33 @@ class OpenAICompatibleProvider : ModelProvider {
         }
     }
 
+    /** 把一条消息转成 OpenAI 格式的 message JSON。有图片时 content 是数组，否则是纯字符串。 */
+    private fun toOpenAiMessage(m: ChatMessage): JsonObject {
+        val obj = JsonObject()
+        obj.addProperty("role", m.role)
+        if (m.images.isEmpty()) {
+            obj.addProperty("content", m.content)
+        } else {
+            val contentArray = JsonArray()
+            if (m.content.isNotBlank()) {
+                val textPart = JsonObject()
+                textPart.addProperty("type", "text")
+                textPart.addProperty("text", m.content)
+                contentArray.add(textPart)
+            }
+            m.images.forEach { img ->
+                val imgPart = JsonObject()
+                imgPart.addProperty("type", "image_url")
+                val urlObj = JsonObject()
+                urlObj.addProperty("url", "data:${img.mimeType};base64,${img.base64Data}")
+                imgPart.add("image_url", urlObj)
+                contentArray.add(imgPart)
+            }
+            obj.add("content", contentArray)
+        }
+        return obj
+    }
+
     override fun chatStream(
         config: ProviderConfig,
         apiKey: String,
@@ -50,25 +79,21 @@ class OpenAICompatibleProvider : ModelProvider {
             try {
                 val url = buildChatCompletionsUrl(config.baseUrl)
 
-                val messagesJson = messages.joinToString(",", prefix = "[", postfix = "]") { m ->
-                    """{"role":"${m.role}","content":${jsonEscape(m.content)}}"""
-                }
+                val messagesArray = JsonArray()
+                messages.forEach { messagesArray.add(toOpenAiMessage(it)) }
 
-                val body = """
-                    {
-                      "model": "${config.model}",
-                      "stream": true,
-                      "temperature": ${config.temperature},
-                      "messages": $messagesJson
-                    }
-                """.trimIndent()
+                val root = JsonObject()
+                root.addProperty("model", config.model)
+                root.addProperty("stream", true)
+                root.addProperty("temperature", config.temperature)
+                root.add("messages", messagesArray)
 
                 val request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .timeout(Duration.ofMinutes(5))
                     .header("Content-Type", "application/json")
                     .header("Authorization", "Bearer $apiKey")
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .POST(HttpRequest.BodyPublishers.ofString(root.toString()))
                     .build()
 
                 val response = client.send(request, HttpResponse.BodyHandlers.ofLines())
@@ -106,15 +131,5 @@ class OpenAICompatibleProvider : ModelProvider {
                 onError(e)
             }
         }
-    }
-
-    private fun jsonEscape(text: String): String {
-        val escaped = text
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-            .replace("\n", "\\n")
-            .replace("\r", "\\r")
-            .replace("\t", "\\t")
-        return "\"$escaped\""
     }
 }

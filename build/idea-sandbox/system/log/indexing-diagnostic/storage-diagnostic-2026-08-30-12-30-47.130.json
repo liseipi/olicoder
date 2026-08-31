@@ -1,17 +1,17 @@
 {
   "pageCacheStats" : {
     "cachedChannelsStatistics" : {
-      "hit" : 0,
+      "hit" : 3,
       "miss" : 0,
       "load" : 90,
       "capacity" : 400
     },
-    "uncachedFileAccess" : 120,
+    "uncachedFileAccess" : 122,
     "maxRegisteredFiles" : 555,
     "maxCacheSizeInBytes" : 214974464,
     "totalCachedSizeInBytes" : 214974464,
     "pageHits" : 0,
-    "pageFastCacheHits" : 4396,
+    "pageFastCacheHits" : 4447,
     "pageLoadsAboveSizeThreshold" : 0,
     "regularPageLoads" : 210,
     "disposedBuffers" : 3,

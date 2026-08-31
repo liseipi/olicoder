@@ -4,7 +4,7 @@
       <i c="1" l="1788058151019" />
     </e>
     <e n="EditorBackSpace">
-      <i c="7" l="1788058183306" />
+      <i c="9" l="1788084284102" />
     </e>
     <e n="EditorCopy">
       <i c="3" l="1788058149672" />
@@ -12,8 +12,17 @@
     <e n="EditorPaste">
       <i c="8" l="1788058215335" />
     </e>
+    <e n="NewElement">
+      <i c="1" l="1788084317280" />
+    </e>
+    <e n="SettingsEntryPoint">
+      <i c="1" l="1788084414923" />
+    </e>
     <e n="WelcomeScreen.OpenProject">
       <i c="1" l="1788057966859" />
+    </e>
+    <e n="WelcomeScreen.Plugins">
+      <i c="1" l="1788084417563" />
     </e>
     <e n="com.intellij.ui.CommonActionsPanel$AddButton">
       <i c="1" l="1788058109458" />

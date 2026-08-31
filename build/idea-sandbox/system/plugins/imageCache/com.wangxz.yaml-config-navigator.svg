@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+  <!-- 背景：深蓝黑圆角矩形 -->
+  <rect x="1" y="1" width="38" height="38" rx="8" ry="8" fill="#0D1117" stroke="#30363D" stroke-width="1"/>
+
+  <!-- Y 字母（YAML，橙红色） -->
+  <text x="10" y="24" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#E06C75" text-anchor="middle">Y</text>
+
+  <!-- 双向箭头（黄色，代表导航/跳转） -->
+  <g transform="translate(20, 20)" fill="#E5C07B">
+    <!-- 左箭头 -->
+    <path d="M -5 -3 L -8 0 L -5 3 Z"/>
+    <!-- 右箭头 -->
+    <path d="M 5 -3 L 8 0 L 5 3 Z"/>
+    <!-- 中间横线 -->
+    <rect x="-5" y="-1" width="10" height="2" rx="1"/>
+  </g>
+
+  <!-- P 字母（Python，蓝色） -->
+  <text x="30" y="24" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#61AFEF" text-anchor="middle">P</text>
+
+  <!-- 底部配置文件分隔线 -->
+  <line x1="6" y1="31" x2="34" y2="31" stroke="#5C6370" stroke-width="1" stroke-dasharray="2,2"/>
+  <line x1="6" y1="34" x2="28" y2="34" stroke="#5C6370" stroke-width="1" stroke-dasharray="2,2"/>
+</svg>

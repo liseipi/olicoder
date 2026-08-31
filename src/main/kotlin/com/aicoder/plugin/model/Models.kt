@@ -1,11 +1,20 @@
 package com.aicoder.plugin.model
 
 /**
+ * 一张图片附件（base64 编码），随消息一起发给支持视觉的模型
+ */
+data class ImageAttachment(
+    val mimeType: String,  // 例如 image/png、image/jpeg
+    val base64Data: String
+)
+
+/**
  * 一条对话消息
  */
 data class ChatMessage(
     val role: String,   // "system" | "user" | "assistant"
-    val content: String
+    val content: String,
+    val images: List<ImageAttachment> = emptyList()
 )
 
 /**

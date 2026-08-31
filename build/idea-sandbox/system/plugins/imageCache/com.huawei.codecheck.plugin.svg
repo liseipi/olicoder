@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="40px" height="40px" viewBox="0 0 40 40" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>pluginIcon</title>
+    <g id="pluginIcon" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <path d="M5.67036929,9.97799234 L7.99986773,9.25 C10.6555193,8.42008144 13.1939945,7.25358808 15.5533889,5.77896662 L18.9397376,3.66249868 C19.5882781,3.25716082 20.4111928,3.25716082 21.0597333,3.66249868 L24.4458679,5.77883279 C26.805403,7.25354221 29.3440421,8.42008194 31.9998677,9.25 L34.3295892,9.97801387 C35.2859714,10.2768735 35.8736017,11.2373233 35.7043016,12.2249071 L34.3357762,20.2079719 C33.4814273,25.1916741 30.6573341,29.6218456 26.5,32.5 L21.13842,36.2118631 C20.4535306,36.6860173 19.5464694,36.6860173 18.86158,36.2118631 L13.5,32.5 C9.3426659,29.6218456 6.5185727,25.1916741 5.66422376,20.2079719 L4.29569274,12.2248743 C4.12639509,11.2373047 4.71400629,10.2768657 5.67036929,9.97799234 Z" id="Rectangle" stroke="#5EC6FF" stroke-width="2" stroke-linejoin="round"></path>
+        <circle id="Oval" fill="#5EC6FF" fill-rule="nonzero" opacity="0.300000012" cx="20" cy="20" r="10"></circle>
+        <circle id="Oval" stroke="#63EEFF" stroke-width="0.2" fill="#5EC6FF" fill-rule="nonzero" cx="20" cy="20" r="7.5"></circle>
+        <circle id="Oval" stroke="#7EDFFF" stroke-width="0.2" fill-rule="nonzero" cx="20" cy="20" r="4"></circle>
+        <line x1="20" y1="20" x2="27.2823622" y2="26.5564313" id="Path-2" stroke="#63EEFF" stroke-width="0.4" stroke-linecap="round"></line>
+        <circle id="Oval" stroke="#7EDFFF" stroke-width="0.2" fill="#3ABFFA" fill-rule="nonzero" cx="20" cy="20" r="1"></circle>
+    </g>
+</svg>

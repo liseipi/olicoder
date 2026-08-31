@@ -1,5 +1,7 @@
 package com.aicoder.plugin.model
 
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import java.net.URI
 import java.net.http.HttpClient
@@ -20,6 +22,28 @@ class GeminiProvider : ModelProvider {
 
     private val executor = Executors.newCachedThreadPool()
 
+    private fun toGeminiContent(m: ChatMessage): JsonObject {
+        val obj = JsonObject()
+        val role = if (m.role == "assistant") "model" else "user"
+        obj.addProperty("role", role)
+        val parts = JsonArray()
+        if (m.content.isNotBlank()) {
+            val textPart = JsonObject()
+            textPart.addProperty("text", m.content)
+            parts.add(textPart)
+        }
+        m.images.forEach { img ->
+            val imgPart = JsonObject()
+            val inlineData = JsonObject()
+            inlineData.addProperty("mime_type", img.mimeType)
+            inlineData.addProperty("data", img.base64Data)
+            imgPart.add("inline_data", inlineData)
+            parts.add(imgPart)
+        }
+        obj.add("parts", parts)
+        return obj
+    }
+
     override fun chatStream(
         config: ProviderConfig,
         apiKey: String,
@@ -30,29 +54,31 @@ class GeminiProvider : ModelProvider {
     ) {
         executor.submit {
             try {
-                val url = "${config.baseUrl.trimEnd('/')}/v1beta/models/${config.model}:streamGenerateContent?alt=sse&key=$apiKey"
-
-                val contentsJson = messages
-                    .filter { it.role != "system" }
-                    .joinToString(",", prefix = "[", postfix = "]") { m ->
-                        val role = if (m.role == "assistant") "model" else "user"
-                        """{"role":"$role","parts":[{"text":${jsonEscape(m.content)}}]}"""
-                    }
+                val url = "${config.baseUrl.trim().trimEnd('/')}/v1beta/models/${config.model}:streamGenerateContent?alt=sse&key=$apiKey"
 
                 val systemMsg = messages.firstOrNull { it.role == "system" }?.content
+                val convoMessages = messages.filter { it.role != "system" }
 
-                val body = """
-                    {
-                      ${if (!systemMsg.isNullOrBlank()) "\"system_instruction\": {\"parts\":[{\"text\": ${jsonEscape(systemMsg)}}]}," else ""}
-                      "contents": $contentsJson
-                    }
-                """.trimIndent()
+                val contentsArray = JsonArray()
+                convoMessages.forEach { contentsArray.add(toGeminiContent(it)) }
+
+                val root = JsonObject()
+                if (!systemMsg.isNullOrBlank()) {
+                    val sysInstruction = JsonObject()
+                    val parts = JsonArray()
+                    val textPart = JsonObject()
+                    textPart.addProperty("text", systemMsg)
+                    parts.add(textPart)
+                    sysInstruction.add("parts", parts)
+                    root.add("system_instruction", sysInstruction)
+                }
+                root.add("contents", contentsArray)
 
                 val request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .timeout(Duration.ofMinutes(5))
                     .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .POST(HttpRequest.BodyPublishers.ofString(root.toString()))
                     .build()
 
                 val response = client.send(request, HttpResponse.BodyHandlers.ofLines())
@@ -91,15 +117,5 @@ class GeminiProvider : ModelProvider {
                 onError(e)
             }
         }
-    }
-
-    private fun jsonEscape(text: String): String {
-        val escaped = text
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-            .replace("\n", "\\n")
-            .replace("\r", "\\r")
-            .replace("\t", "\\t")
-        return "\"$escaped\""
     }
 }

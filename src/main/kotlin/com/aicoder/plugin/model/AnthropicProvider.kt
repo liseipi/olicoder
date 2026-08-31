@@ -1,5 +1,7 @@
 package com.aicoder.plugin.model
 
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import java.net.URI
 import java.net.http.HttpClient
@@ -28,6 +30,30 @@ class AnthropicProvider : ModelProvider {
         return if (base.endsWith("/v1/messages")) base else "$base/v1/messages"
     }
 
+    private fun toAnthropicMessage(m: ChatMessage): JsonObject {
+        val obj = JsonObject()
+        obj.addProperty("role", m.role)
+        val contentArray = JsonArray()
+        if (m.content.isNotBlank()) {
+            val textPart = JsonObject()
+            textPart.addProperty("type", "text")
+            textPart.addProperty("text", m.content)
+            contentArray.add(textPart)
+        }
+        m.images.forEach { img ->
+            val imgPart = JsonObject()
+            imgPart.addProperty("type", "image")
+            val source = JsonObject()
+            source.addProperty("type", "base64")
+            source.addProperty("media_type", img.mimeType)
+            source.addProperty("data", img.base64Data)
+            imgPart.add("source", source)
+            contentArray.add(imgPart)
+        }
+        obj.add("content", contentArray)
+        return obj
+    }
+
     override fun chatStream(
         config: ProviderConfig,
         apiKey: String,
@@ -43,20 +69,16 @@ class AnthropicProvider : ModelProvider {
                 val systemMsg = messages.firstOrNull { it.role == "system" }?.content ?: ""
                 val convoMessages = messages.filter { it.role != "system" }
 
-                val messagesJson = convoMessages.joinToString(",", prefix = "[", postfix = "]") { m ->
-                    """{"role":"${m.role}","content":${jsonEscape(m.content)}}"""
-                }
+                val messagesArray = JsonArray()
+                convoMessages.forEach { messagesArray.add(toAnthropicMessage(it)) }
 
-                val body = """
-                    {
-                      "model": "${config.model}",
-                      "max_tokens": 4096,
-                      "stream": true,
-                      "temperature": ${config.temperature},
-                      ${if (systemMsg.isNotBlank()) "\"system\": ${jsonEscape(systemMsg)}," else ""}
-                      "messages": $messagesJson
-                    }
-                """.trimIndent()
+                val root = JsonObject()
+                root.addProperty("model", config.model)
+                root.addProperty("max_tokens", 4096)
+                root.addProperty("stream", true)
+                root.addProperty("temperature", config.temperature)
+                if (systemMsg.isNotBlank()) root.addProperty("system", systemMsg)
+                root.add("messages", messagesArray)
 
                 val request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
@@ -64,7 +86,7 @@ class AnthropicProvider : ModelProvider {
                     .header("Content-Type", "application/json")
                     .header("x-api-key", apiKey)
                     .header("anthropic-version", "2023-06-01")
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .POST(HttpRequest.BodyPublishers.ofString(root.toString()))
                     .build()
 
                 val response = client.send(request, HttpResponse.BodyHandlers.ofLines())
@@ -101,15 +123,5 @@ class AnthropicProvider : ModelProvider {
                 onError(e)
             }
         }
-    }
-
-    private fun jsonEscape(text: String): String {
-        val escaped = text
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-            .replace("\n", "\\n")
-            .replace("\r", "\\r")
-            .replace("\t", "\\t")
-        return "\"$escaped\""
     }
 }

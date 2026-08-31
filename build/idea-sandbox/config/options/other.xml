@@ -1,5 +1,5 @@
 <application>
-  <component name="FileEditorProviderManager"><![CDATA[{}]]></component>
+  <component name="FileEditorProviderManager">{}</component>
   <component name="LangManager">
     <option name="languageName" value="JAVA" />
   </component>
@@ -8,6 +8,7 @@
   </component>
   <component name="PropertyService"><![CDATA[{
   "keyToString": {
+    "MarketplacePluginsSearchHistory": "codebuddy\ncode\ncod",
     "RunOnceActivity.ide.auto-popup.quick-doc.initialized": "true",
     "RunOnceActivity.java.code.vision.default.position.was.set": "true",
     "experimental.ui.first.promotion.localdate": "2026-08-30",

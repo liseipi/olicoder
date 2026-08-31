@@ -7,11 +7,13 @@
     </option>
   </component>
   <component name="FileEditorManager">
-    <leaf ideFingerprint="1ygal0e8krmy0">
+    <leaf ideFingerprint="1ygal0e8krmy0" SIDE_TABS_SIZE_LIMIT_KEY="-1">
       <file>
         <entry file="file://$PROJECT_DIR$/ai.js">
           <provider editor-type-id="text-editor" selected="true">
-            <state relative-caret-position="-770" />
+            <state relative-caret-position="1100">
+              <caret line="50" selection-start-line="50" selection-end-line="50" />
+            </state>
           </provider>
         </entry>
       </file>
@@ -20,11 +22,16 @@
   <component name="FileTypeUsageLocalSummary"><![CDATA[{
   "data": {
     "JavaScript": {
-      "usageCount": 1,
-      "lastUsed": 1788058168501
+      "usageCount": 2,
+      "lastUsed": 1788084269860
     }
   }
 }]]></component>
+  <component name="IdeDocumentHistory">
+    <changedPaths>
+      <option value="$PROJECT_DIR$/ai.js" />
+    </changedPaths>
+  </component>
   <component name="IgnoredFileRootStore">
     <option name="generatedRoots">
       <set>
@@ -53,22 +60,22 @@
   <component name="ToolWindowManager">
     <layout>
       <window_info id="Bookmarks" order="0" side_tool="true" />
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.25035715" />
-      <window_info id="Learn" order="0" />
-      <window_info id="Structure" order="0" side_tool="true" />
+      <window_info active="true" content_ui="combo" id="Project" order="1" visible="true" weight="0.2117857" />
+      <window_info id="Learn" order="2" />
+      <window_info id="Structure" order="3" side_tool="true" />
       <window_info anchor="bottom" id="Version Control" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
       <window_info anchor="bottom" id="Run" order="2" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="4" />
-      <window_info anchor="bottom" id="Inspection" order="4" weight="0.4" />
-      <window_info anchor="bottom" id="Problems View" order="4" />
-      <window_info anchor="bottom" id="Terminal" order="4" />
-      <window_info anchor="bottom" id="Services" order="4" />
+      <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
+      <window_info anchor="bottom" id="Problems View" order="6" />
+      <window_info anchor="bottom" id="Terminal" order="7" />
+      <window_info anchor="bottom" id="Services" order="8" />
       <window_info anchor="right" id="Coverage" order="0" side_tool="true" />
-      <window_info anchor="right" id="Notifications" order="0" weight="0.25" />
-      <window_info active="true" anchor="right" id="AI Coder" order="0" visible="true" weight="0.38678572" />
-      <unified_weights left="0.25035715" right="0.38678572" />
+      <window_info anchor="right" id="Notifications" order="1" weight="0.25" />
+      <window_info active="true" anchor="right" id="AI Coder" order="2" visible="true" weight="0.30964285" />
+      <unified_weights left="0.2117857" right="0.30964285" />
     </layout>
     <recentWindows>
       <value>AI Coder</value>
@@ -76,15 +83,17 @@
     </recentWindows>
   </component>
   <component name="WindowStateProjectService">
-    <state x="377" y="181" key="SettingsEditor" timestamp="1788058225495">
+    <state x="377" y="181" key="SettingsEditor" timestamp="1788086335118">
       <screen x="57" y="25" width="1623" height="1025" />
     </state>
-    <state x="377" y="181" key="SettingsEditor/57.25.1623.1025@57.25.1623.1025" timestamp="1788058225495" />
+    <state x="377" y="181" key="SettingsEditor/57.25.1623.1025@57.25.1623.1025" timestamp="1788086335118" />
   </component>
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/ai.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-770" />
+        <state relative-caret-position="1100">
+          <caret line="50" selection-start-line="50" selection-end-line="50" />
+        </state>
       </provider>
     </entry>
   </component>

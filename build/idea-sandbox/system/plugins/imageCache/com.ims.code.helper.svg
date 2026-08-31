@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="512" height="512" viewBox="0 0 512 512"
+     role="img" aria-label="IMS V6 Code Assistant">
+    <defs>
+        <clipPath id="avatar-clip">
+            <rect width="512" height="512" rx="96"/>
+        </clipPath>
+    </defs>
+
+    <g clip-path="url(#avatar-clip)">
+        <rect width="512" height="512" fill="#F58025"/>
+
+        <!-- Code mark identifies the plugin as a developer tool. -->
+        <g fill="none" stroke="#FFFFFF" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M190 108L100 210L190 312"/>
+            <path d="M322 108L412 210L322 312"/>
+            <path d="M278 102L234 318"/>
+        </g>
+
+        <!-- IMS V6 identity band keeps the avatar recognisable at small sizes. -->
+        <rect y="380" width="512" height="132" fill="#211A26"/>
+        <rect y="380" width="512" height="6" fill="#FFB77D"/>
+        <text x="256" y="463"
+              text-anchor="middle"
+              font-family="Inter, Arial, sans-serif"
+              font-size="52" font-weight="700" letter-spacing="2"
+              fill="#FFFFFF">IMS <tspan fill="#FFB77D">V6</tspan> CODE</text>
+    </g>
+</svg>
