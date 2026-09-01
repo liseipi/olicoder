@@ -4,16 +4,19 @@
       <i c="1" l="1788058151019" />
     </e>
     <e n="EditorBackSpace">
-      <i c="20" l="1788182083562" />
+      <i c="21" l="1788221280567" />
     </e>
     <e n="EditorCopy">
-      <i c="4" l="1788182009640" />
+      <i c="5" l="1788221290715" />
     </e>
     <e n="EditorPaste">
-      <i c="10" l="1788182065493" />
+      <i c="11" l="1788221294500" />
     </e>
     <e n="NewElement">
       <i c="1" l="1788084317280" />
+    </e>
+    <e n="SaveAll">
+      <i c="2" l="1788221371743" />
     </e>
     <e n="SettingsEntryPoint">
       <i c="1" l="1788084414923" />
@@ -23,6 +26,9 @@
     </e>
     <e n="WelcomeScreen.Plugins">
       <i c="1" l="1788084417563" />
+    </e>
+    <e n="com.intellij.openapi.fileEditor.impl.tabActions.CloseTab">
+      <i c="1" l="1788221353957" />
     </e>
     <e n="com.intellij.ui.CommonActionsPanel$AddButton">
       <i c="1" l="1788058109458" />

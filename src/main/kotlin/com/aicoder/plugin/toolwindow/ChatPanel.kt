@@ -738,15 +738,47 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
     }
 
     private fun renderAssistantBubble(content: String): String {
-        val safe = escapeHtml(content)
+        val rendered = renderContentWithCodeBlocks(content)
         return """
             <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="left">
               <div style="color:#888; font-size:11px; margin:8px 0 2px 6px;">AI</div>
               <table cellpadding="8" cellspacing="0" style="background-color:#3c3f41; border-radius:8px;">
-                <tr><td style="color:#dddddd;">$safe</td></tr>
+                <tr><td style="color:#dddddd;">$rendered</td></tr>
               </table>
             </td></tr></table>
             """.trimIndent()
+    }
+
+    /**
+     * 把回复文本按 ``` 代码围栏切开，普通文本正常转义换行，代码部分渲染成等宽字体的深色代码框。
+     * 流式输出中途如果代码围栏还没闭合（``` 数量是奇数），最后一段也按代码块处理，
+     * 这样打字机效果里代码块会从一开始就是"代码框"的样子，而不是先出纯文本再突然变代码框。
+     */
+    private fun renderContentWithCodeBlocks(content: String): String {
+        val segments = content.split("```")
+        val sb = StringBuilder()
+        segments.forEachIndexed { index, segment ->
+            if (index % 2 == 0) {
+                if (segment.isNotEmpty()) sb.append(escapeHtml(segment))
+            } else {
+                val firstNewline = segment.indexOf('\n')
+                val lang = if (firstNewline >= 0) segment.substring(0, firstNewline).trim() else segment.trim()
+                val code = if (firstNewline >= 0) segment.substring(firstNewline + 1) else ""
+                sb.append(renderCodeBlockHtml(code, lang))
+            }
+        }
+        return sb.toString()
+    }
+
+    private fun renderCodeBlockHtml(code: String, lang: String): String {
+        val escapedCode = code
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+        val langLabel = if (lang.isNotBlank())
+            "<div style=\"color:#8a8f98; font-size:10px; margin:4px 0 2px 2px;\">${escapeHtml(lang)}</div>"
+        else ""
+        return """<div style="margin:2px 0;">$langLabel<pre style="background-color:#1e1f22; color:#d4d4d4; padding:8px; border-radius:6px; overflow-x:auto; font-family:Monospaced; font-size:11.5px; margin:0; white-space:pre-wrap;">$escapedCode</pre></div>"""
     }
 
     private fun appendSystemNotice(text: String) {
