@@ -15,14 +15,13 @@ import com.intellij.openapi.command.undo.UndoManager
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.search.FilenameIndex
-import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextArea
@@ -303,33 +302,86 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         attachmentBar.repaint()
     }
 
-    // ---------------- @ 文件引用（项目内检索） ----------------
+    // ---------------- @ 文件引用（已打开文件优先，其次是项目内文件，不包含依赖库/SDK） ----------------
+
+    /** 不希望出现在 @ 引用列表里的目录名（IDE 配置、VCS、构建产物等噪音目录） */
+    private val excludedDirNames = setOf(".idea", ".git", ".gradle", ".hg", ".svn", "node_modules")
+
+    private fun isInExcludedDir(vf: VirtualFile): Boolean {
+        var parent = vf.parent
+        while (parent != null) {
+            if (parent.name in excludedDirNames) return true
+            parent = parent.parent
+        }
+        return false
+    }
+
+    /** 收集候选文件：已打开的文件在前，然后是项目内容范围里的其他文件（不含依赖库、SDK、.idea/.git 等噪音目录） */
+    private fun collectCandidateFiles(): List<VirtualFile> {
+        val openFiles = FileEditorManager.getInstance(project).openFiles.toList()
+        val openSet = openFiles.toHashSet()
+
+        val projectFiles = mutableListOf<VirtualFile>()
+        val fileIndex = ProjectRootManager.getInstance(project).fileIndex
+        fileIndex.iterateContent { vf ->
+            if (!vf.isDirectory && vf !in openSet && !isInExcludedDir(vf)) {
+                projectFiles.add(vf)
+            }
+            projectFiles.size < 3000 // 文件太多的项目做个上限，避免卡顿
+        }
+        projectFiles.sortBy { it.name.lowercase() }
+        return openFiles + projectFiles
+    }
+
+    private fun labelForFile(vf: VirtualFile): String {
+        val basePath = project.basePath
+        val parentPath = vf.parent?.path
+        val relativeDir = if (parentPath != null && basePath != null && parentPath.startsWith(basePath)) {
+            parentPath.removePrefix(basePath).trimStart('/')
+        } else {
+            parentPath ?: ""
+        }
+        return if (relativeDir.isBlank()) vf.name else "${vf.name}   —   $relativeDir"
+    }
 
     private fun showFileMentionPopup(atOffset: Int, removeTypedAt: Boolean) {
-        val allNames = FilenameIndex.getAllFilenames(project).toList().sorted()
+        val allCandidates = collectCandidateFiles()
+        val openSet = FileEditorManager.getInstance(project).openFiles.toHashSet()
 
-        val listModel = DefaultListModel<String>()
-        allNames.take(300).forEach { listModel.addElement(it) }
+        val listModel = DefaultListModel<VirtualFile>()
+        allCandidates.take(500).forEach { listModel.addElement(it) }
         val list = JBList(listModel)
+        list.cellRenderer = object : DefaultListCellRenderer() {
+            override fun getListCellRendererComponent(
+                l: JList<*>?, value: Any?, index: Int, isSelected: Boolean, cellHasFocus: Boolean
+            ): java.awt.Component {
+                val c = super.getListCellRendererComponent(l, value, index, isSelected, cellHasFocus)
+                if (value is VirtualFile) {
+                    val mark = if (value in openSet) "🟢 " else "　 "
+                    text = mark + labelForFile(value)
+                }
+                return c
+            }
+        }
         val searchField = JBTextField()
 
         val panel = JPanel(BorderLayout())
         panel.add(searchField, BorderLayout.NORTH)
         panel.add(JBScrollPane(list), BorderLayout.CENTER)
-        panel.preferredSize = Dimension(320, 260)
+        panel.preferredSize = Dimension(420, 280)
 
         val popup = JBPopupFactory.getInstance()
             .createComponentPopupBuilder(panel, searchField)
             .setRequestFocus(true)
             .setResizable(true)
-            .setTitle("选择要引用的文件")
+            .setTitle("选择要引用的文件（🟢 = 已打开）")
             .createPopup()
 
         fun applyFilter() {
             val query = searchField.text.trim()
             listModel.clear()
-            val filtered = if (query.isBlank()) allNames else allNames.filter { it.contains(query, ignoreCase = true) }
-            filtered.take(300).forEach { listModel.addElement(it) }
+            val filtered = if (query.isBlank()) allCandidates else allCandidates.filter { it.name.contains(query, ignoreCase = true) }
+            filtered.take(500).forEach { listModel.addElement(it) }
             if (listModel.size() > 0) list.selectedIndex = 0
         }
 
@@ -363,10 +415,8 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         popup.showInScreenCoordinates(inputArea, inputArea.locationOnScreen)
     }
 
-    private fun insertFileMention(fileName: String, atOffset: Int, removeTypedAt: Boolean) {
-        val scope = GlobalSearchScope.allScope(project)
-        val virtualFiles = FilenameIndex.getVirtualFilesByName(project, fileName, scope)
-        val vf = virtualFiles.firstOrNull() ?: return
+    private fun insertFileMention(vf: VirtualFile, atOffset: Int, removeTypedAt: Boolean) {
+        val fileName = vf.name
         mentionedFiles[fileName] = vf
 
         val insertText = "@$fileName "
