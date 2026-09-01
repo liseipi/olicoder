@@ -1,0 +1,137 @@
+{
+  "appInfo" : {
+    "build" : "241.14494.240",
+    "buildDate" : "2024-03-28T05:12:00Z[UTC]",
+    "productCode" : "IC",
+    "generated" : "2026-09-01T00:15:50.556302Z",
+    "os" : "macOS 15.7.9",
+    "runtime" : "JetBrains s.r.o. 17.0.10 17.0.10+8-b1207.12"
+  },
+  "runtimeInfo" : {
+    "maxMemory" : 2147483648,
+    "numberOfProcessors" : 16,
+    "maxNumberOfIndexingThreads" : 15,
+    "maxSizeOfFileForIntelliSense" : 2560000,
+    "maxSizeOfFileForContentLoading" : 20971520
+  },
+  "type" : "DumbIndexing",
+  "projectIndexingActivityHistory" : {
+    "projectName" : "html",
+    "times" : {
+      "scanningIds" : [ 0 ],
+      "contentLoadingVisibleTime" : 0,
+      "retrievingChangedDuringIndexingFilesTime" : 3054203,
+      "separateApplyingIndexesVisibleTime" : 0,
+      "updatingStart" : "2026-09-01T00:15:50.384715Z",
+      "updatingEnd" : "2026-09-01T00:15:50.555386Z",
+      "totalWallTimeWithPauses" : 170629811,
+      "wallTimeOnPause" : 0,
+      "wasInterrupted" : false,
+      "dumbWallTimeWithoutPauses" : 170629811,
+      "dumbModeStart" : "2026-09-01T00:15:50.384715Z",
+      "dumbWallTimeWithPauses" : 170629811,
+      "totalWallTimeWithoutPauses" : 170629811
+    },
+    "fileCount" : {
+      "numberOfChangedDuringIndexingFiles" : 0,
+      "numberOfFilesIndexedByInfrastructureExtensionsDuringIndexingStage" : 0,
+      "numberOfFilesIndexedWithLoadingContent" : 1,
+      "numberOfNothingToWriteFiles" : 0
+    },
+    "totalStatsPerFileType" : [ {
+      "fileType" : "JavaScript",
+      "partOfTotalProcessingTime" : {
+        "part" : 106561737,
+        "total" : 106561737
+      },
+      "partOfTotalContentLoadingTime" : {
+        "part" : 3572868,
+        "total" : 3572868
+      },
+      "totalNumberOfFiles" : 1,
+      "totalFilesSize" : 1390,
+      "totalProcessingSpeed" : {
+        "totalBytes" : 1390,
+        "totalCpuTime" : 106561737
+      },
+      "biggestContributors" : [ {
+        "providerName" : "Module 'html' (all roots)",
+        "numberOfFiles" : 1,
+        "totalFilesSize" : 1390,
+        "partOfTotalProcessingTimeOfThisFileType" : {
+          "part" : 106561737,
+          "total" : 106561737
+        }
+      } ]
+    } ],
+    "totalStatsPerBaseLanguage" : [ ],
+    "totalStatsPerIndexer" : [ {
+      "indexId" : "IdIndex",
+      "partOfTotalIndexingTime" : {
+        "part" : 53591271,
+        "total" : 72449322
+      },
+      "totalNumberOfFiles" : 1,
+      "totalNumberOfFilesIndexedByExtensions" : 0,
+      "totalFilesSize" : 1390,
+      "indexValueChangerEvaluationSpeed" : {
+        "totalBytes" : 1390,
+        "totalCpuTime" : 53591271
+      }
+    }, {
+      "indexId" : "Trigram.Index",
+      "partOfTotalIndexingTime" : {
+        "part" : 14410624,
+        "total" : 72449322
+      },
+      "totalNumberOfFiles" : 1,
+      "totalNumberOfFilesIndexedByExtensions" : 0,
+      "totalFilesSize" : 1390,
+      "indexValueChangerEvaluationSpeed" : {
+        "totalBytes" : 1390,
+        "totalCpuTime" : 14410624
+      }
+    }, {
+      "indexId" : "org.jetbrains.kotlin.idea.versions.KotlinJsMetadataVersionIndex",
+      "partOfTotalIndexingTime" : {
+        "part" : 4447427,
+        "total" : 72449322
+      },
+      "totalNumberOfFiles" : 1,
+      "totalNumberOfFilesIndexedByExtensions" : 0,
+      "totalFilesSize" : 1390,
+      "indexValueChangerEvaluationSpeed" : {
+        "totalBytes" : 1390,
+        "totalCpuTime" : 4447427
+      }
+    } ],
+    "statisticsOfChangedDuringIndexingFiles" : {
+      "numberOfFiles" : 0,
+      "retrievingTime" : 3054203
+    },
+    "fileProviderStatistics" : [ {
+      "providerName" : "Module 'html' (all roots)",
+      "totalNumberOfIndexedFiles" : 1,
+      "totalNumberOfFilesFullyIndexedByExtensions" : 0,
+      "totalNumberOfNothingToWriteFiles" : 0,
+      "totalIndexingVisibleTime" : 0,
+      "contentLoadingVisibleTime" : 0,
+      "numberOfTooLargeForIndexingFiles" : 0,
+      "slowIndexedFiles" : [ ],
+      "filesFullyIndexedByExtensions" : [ ],
+      "separateApplyingIndexesVisibleTime" : 0
+    }, {
+      "providerName" : "Refreshed files",
+      "totalNumberOfIndexedFiles" : 0,
+      "totalNumberOfFilesFullyIndexedByExtensions" : 0,
+      "totalNumberOfNothingToWriteFiles" : 0,
+      "totalIndexingVisibleTime" : 0,
+      "contentLoadingVisibleTime" : 0,
+      "numberOfTooLargeForIndexingFiles" : 0,
+      "slowIndexedFiles" : [ ],
+      "filesFullyIndexedByExtensions" : [ ],
+      "separateApplyingIndexesVisibleTime" : 0
+    } ],
+    "visibleTimeToAllThreadTimeRatio" : 0.0
+  }
+}

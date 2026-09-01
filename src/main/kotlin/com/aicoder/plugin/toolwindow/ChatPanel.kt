@@ -75,7 +75,14 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
 
     private val transcript = JEditorPane().apply {
         contentType = "text/html"
-        editorKit = HTMLEditorKit()
+        val kit = HTMLEditorKit()
+        // Swing 的 HTML 渲染引擎对内联 style 的级联支持并不完整，字号这类全局设置
+        // 用 StyleSheet 规则来定义才能可靠地应用到所有子元素上，避免出现字体忽大忽小的问题。
+        kit.styleSheet.addRule("body { font-family: sans-serif; font-size: 11px; color: #dddddd; }")
+        kit.styleSheet.addRule("td, div, span, b, i { font-size: 11px; }")
+        kit.styleSheet.addRule("pre { font-family: Monospaced; font-size: 10.5px; line-height: 1.35; }")
+        kit.styleSheet.addRule("a { color: #6cb6ff; text-decoration: none; }")
+        editorKit = kit
         isEditable = false
         text = wrapHtml("")
         addHyperlinkListener { e ->
@@ -588,13 +595,13 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
     private fun appendUserMessage(content: String, imageNames: List<String>) {
         val safe = escapeHtml(content)
         val imagesLine = if (imageNames.isNotEmpty())
-            "<div style=\"color:#cde; font-size:11px; margin-top:4px;\">🖼 ${imageNames.joinToString(", ") { escapeHtml(it) }}</div>"
+            "<div style=\"color:#cde; font-size:10px; margin-top:3px;\">🖼 ${imageNames.joinToString(", ") { escapeHtml(it) }}</div>"
         else ""
         messageBuffer.append(
             """
             <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="right">
-              <div style="color:#888; font-size:11px; margin:8px 6px 2px 0;">你</div>
-              <table cellpadding="8" cellspacing="0" style="background-color:#2b5278; border-radius:8px;">
+              <div style="color:#888; font-size:10px; margin:6px 4px 2px 0;">你</div>
+              <table cellpadding="6" cellspacing="0" style="background-color:#2b5278; border-radius:6px;">
                 <tr><td style="color:#ffffff;">$safe$imagesLine</td></tr>
               </table>
             </td></tr></table>
@@ -741,8 +748,8 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         val rendered = renderContentWithCodeBlocks(content)
         return """
             <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="left">
-              <div style="color:#888; font-size:11px; margin:8px 0 2px 6px;">AI</div>
-              <table cellpadding="8" cellspacing="0" style="background-color:#3c3f41; border-radius:8px;">
+              <div style="color:#888; font-size:10px; margin:6px 0 2px 4px;">AI</div>
+              <table cellpadding="6" cellspacing="0" style="background-color:#3c3f41; border-radius:6px;">
                 <tr><td style="color:#dddddd;">$rendered</td></tr>
               </table>
             </td></tr></table>
@@ -776,9 +783,9 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
             .replace("<", "&lt;")
             .replace(">", "&gt;")
         val langLabel = if (lang.isNotBlank())
-            "<div style=\"color:#8a8f98; font-size:10px; margin:4px 0 2px 2px;\">${escapeHtml(lang)}</div>"
+            "<div style=\"color:#8a8f98; font-size:9px; margin:3px 0 1px 2px;\">${escapeHtml(lang)}</div>"
         else ""
-        return """<div style="margin:2px 0;">$langLabel<pre style="background-color:#1e1f22; color:#d4d4d4; padding:8px; border-radius:6px; overflow-x:auto; font-family:Monospaced; font-size:11.5px; margin:0; white-space:pre-wrap;">$escapedCode</pre></div>"""
+        return """<div style="margin:2px 0;">$langLabel<pre style="background-color:#1e1f22; color:#d4d4d4; padding:6px; border-radius:5px; overflow-x:auto; font-family:Monospaced; font-size:10.5px; margin:0; white-space:pre-wrap;">$escapedCode</pre></div>"""
     }
 
     private fun appendSystemNotice(text: String) {
@@ -794,7 +801,7 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
     }
 
     private fun wrapHtml(body: String): String =
-        "<html><body style='font-family:sans-serif;font-size:12px;'>$body</body></html>"
+        "<html><body style='font-family:sans-serif;font-size:11px;'>$body</body></html>"
 
     private fun escapeHtml(text: String): String =
         text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br/>")
