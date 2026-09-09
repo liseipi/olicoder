@@ -1,1 +1,1 @@
-rootProject.name = "ai-coder-plugin"
+rootProject.name = "oli-coder"

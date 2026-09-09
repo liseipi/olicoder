@@ -1,4 +1,4 @@
-# AI Coder — 多模型自选的 JetBrains AI 编程助手（MVP）
+# Oli Coder — 多模型自选的 JetBrains AI 编程助手（MVP）
 
 一个类似 CodeBuddy / Cursor 的 JetBrains 插件骨架，核心差异化：**用户自己选厂商、自填 API Key**，
 不绑定任何单一模型服务商，Key 只加密存储在本机。
@@ -37,12 +37,12 @@
 ## 项目结构
 
 ```
-ai-coder-plugin/
+oli-coder/
 ├── build.gradle.kts          # Gradle 构建配置（IntelliJ Platform Gradle Plugin）
 ├── settings.gradle.kts
 ├── gradle.properties
 └── src/main/
-    ├── kotlin/com/aicoder/plugin/
+    ├── kotlin/com/olicoder/plugin/
     │   ├── model/             # 模型适配层：统一接口 + 各厂商实现
     │   │   ├── Models.kt
     │   │   ├── ModelProvider.kt
@@ -51,8 +51,8 @@ ai-coder-plugin/
     │   │   ├── GeminiProvider.kt
     │   │   └── ProviderFactory.kt
     │   ├── settings/          # 设置页 + Token 加密存储
-    │   │   ├── AiCoderSettingsState.kt
-    │   │   ├── AiCoderSettingsConfigurable.kt
+    │   │   ├── OliCoderSettingsState.kt
+    │   │   ├── OliCoderSettingsConfigurable.kt
     │   │   └── TokenStorage.kt
     │   ├── toolwindow/        # 聊天 UI
     │   │   ├── ChatToolWindowFactory.kt
@@ -70,7 +70,7 @@ ai-coder-plugin/
    ```bash
    ./gradlew runIde
    ```
-   会拉起一个装好本插件的"沙盒" IDE 实例，在里面右下角状态栏或右侧栏能看到 "AI Coder" 工具窗口
+   会拉起一个装好本插件的"沙盒" IDE 实例，在里面右下角状态栏或右侧栏能看到 "Oli Coder" 工具窗口
 4. 打包发布用：
    ```bash
    ./gradlew buildPlugin
@@ -79,7 +79,7 @@ ai-coder-plugin/
 
 ## 使用步骤
 
-1. 打开右侧 "AI Coder" 工具窗口
+1. 打开右侧 "Oli Coder" 工具窗口
 2. 点顶部工具栏的"＋"，直接在弹出的小窗口里填：
    - 配置名称：DeepSeek
    - 协议类型：OpenAI 兼容协议
@@ -108,7 +108,7 @@ ai-coder-plugin/
     如果回复里有**多段代码**，为了避免自动改错文件，会退回手动"应用第N段代码"链接，
     点击后有选中内容替换选中内容、没有则插入光标处
 
-> 备注：应用级设置页（Settings -> Tools -> AI Coder）仍然保留，两边操作的是同一份数据，
+> 备注：应用级设置页（Settings -> Tools -> Oli Coder）仍然保留，两边操作的是同一份数据，
 > 互相同步，喜欢用系统设置页管理的话也可以继续用，纯粹是多一个入口。
 
 ## 常见 404 排查

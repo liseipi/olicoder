@@ -11,8 +11,8 @@
       <file>
         <entry file="file://$PROJECT_DIR$/ai.js">
           <provider editor-type-id="text-editor" selected="true">
-            <state relative-caret-position="616">
-              <caret line="47" column="2" selection-start-line="47" selection-start-column="2" selection-end-line="47" selection-end-column="2" />
+            <state relative-caret-position="-811">
+              <caret line="29" selection-start-line="29" selection-end-line="29" />
             </state>
           </provider>
         </entry>
@@ -22,12 +22,12 @@
   <component name="FileTypeUsageLocalSummary"><![CDATA[{
   "data": {
     "JavaScript": {
-      "usageCount": 7,
-      "lastUsed": 1788912887430
+      "usageCount": 8,
+      "lastUsed": 1788965995645
     },
     "DIFF": {
-      "usageCount": 1,
-      "lastUsed": 1788221337429
+      "usageCount": 2,
+      "lastUsed": 1788966390000
     }
   }
 }]]></component>
@@ -95,8 +95,8 @@
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/ai.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="616">
-          <caret line="47" column="2" selection-start-line="47" selection-start-column="2" selection-end-line="47" selection-end-column="2" />
+        <state relative-caret-position="-811">
+          <caret line="29" selection-start-line="29" selection-end-line="29" />
         </state>
       </provider>
     </entry>
