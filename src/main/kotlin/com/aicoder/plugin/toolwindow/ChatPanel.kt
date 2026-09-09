@@ -29,13 +29,20 @@ import com.intellij.ui.components.JBTextField
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.FlowLayout
+import java.awt.Toolkit
+import java.awt.event.ActionEvent
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import java.awt.Image
+import java.awt.datatransfer.DataFlavor
+import java.awt.image.BufferedImage
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.file.Files
 import java.util.Base64
+import javax.imageio.ImageIO
 import javax.swing.*
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
@@ -92,7 +99,7 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         }
     }
 
-    private val inputArea = JBTextArea(3, 40).apply {
+    private val inputArea = JBTextArea(4, 40).apply {
         lineWrap = true
         wrapStyleWord = true
     }
@@ -155,6 +162,10 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
             toolTipText = "从磁盘选择文件作为上下文"
             addActionListener { pickLocalFile() }
         }
+        val pasteIconButton = JButton("Paste").apply {
+            toolTipText = "粘贴剪贴板里的图片或文件（如果 Ctrl/Cmd+V 没反应就点这个）"
+            addActionListener { pasteFromClipboardButton() }
+        }
         val moreIconButton = JButton("...").apply {
             toolTipText = "更多"
             addActionListener { showMoreMenu(this) }
@@ -162,6 +173,7 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         iconToolbar.add(mentionIconButton)
         iconToolbar.add(imageIconButton)
         iconToolbar.add(localFileIconButton)
+        iconToolbar.add(pasteIconButton)
         iconToolbar.add(moreIconButton)
 
         val bottomPanel = JPanel(BorderLayout())
@@ -174,7 +186,7 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         attachmentBar.isVisible = false
         bottomPanel.add(inputWithChips, BorderLayout.CENTER)
 
-        val hintLabel = JLabel("输入 @ 或点工具栏图标可以引用项目文件 / 图片")
+        val hintLabel = JLabel("输入 @ 引用文件 / 点图标上传 / 也可以直接粘贴图片或文件")
         hintLabel.foreground = java.awt.Color(140, 140, 140)
 
         val sendPanel = JPanel(BorderLayout())
@@ -214,6 +226,133 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
             override fun removeUpdate(e: DocumentEvent) {}
             override fun changedUpdate(e: DocumentEvent) {}
         })
+
+        // 支持在输入框里直接粘贴图片（截图/复制的图片）或粘贴文件（文件管理器里复制的文件）
+        inputArea.transferHandler = object : TransferHandler() {
+            override fun canImport(support: TransferSupport): Boolean {
+                return support.isDataFlavorSupported(DataFlavor.imageFlavor) ||
+                        support.isDataFlavorSupported(DataFlavor.javaFileListFlavor) ||
+                        support.isDataFlavorSupported(DataFlavor.stringFlavor)
+            }
+
+            override fun importData(support: TransferSupport): Boolean {
+                return handlePastedTransferable(support.transferable)
+            }
+        }
+
+        // 额外显式绑定 Ctrl/Cmd+V，直接读系统剪贴板处理。
+        // 有些环境下（比如某些截图工具、或 IDE 对 Swing 组件的按键分发）走 TransferHandler
+        // 收不到图片数据，直接绑定按键、自己读剪贴板内容更可靠。
+        val pasteKeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_V, Toolkit.getDefaultToolkit().menuShortcutKeyMaskEx)
+        inputArea.inputMap.put(pasteKeyStroke, "aiCoderPaste")
+        inputArea.actionMap.put("aiCoderPaste", object : AbstractAction() {
+            override fun actionPerformed(e: ActionEvent) {
+                val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+                val contents = clipboard.getContents(null) ?: return
+                handlePastedTransferable(contents)
+            }
+        })
+    }
+
+    /** 统一处理一份剪贴板内容：优先标准图片 flavor，其次任意 image 开头的 MIME 流，然后文件列表，最后纯文本 */
+    private fun handlePastedTransferable(transferable: java.awt.datatransfer.Transferable): Boolean {
+        try {
+            if (transferable.isDataFlavorSupported(DataFlavor.imageFlavor)) {
+                val image = transferable.getTransferData(DataFlavor.imageFlavor) as Image
+                addPastedImage(image)
+                return true
+            }
+
+            // 兜底：有些截图工具/平台不会暴露标准的 DataFlavor.imageFlavor，
+            // 但会提供一个 mime type 是 image/* 的输入流 flavor，这里扫一遍尝试用 ImageIO 解析。
+            for (flavor in transferable.transferDataFlavors) {
+                val mime = flavor.mimeType?.lowercase() ?: continue
+                if (mime.startsWith("image/") && java.io.InputStream::class.java.isAssignableFrom(flavor.representationClass)) {
+                    val inputStream = transferable.getTransferData(flavor) as java.io.InputStream
+                    val bytes = inputStream.readBytes()
+                    val bufferedImage = ImageIO.read(java.io.ByteArrayInputStream(bytes))
+                    if (bufferedImage != null) {
+                        addPastedImage(bufferedImage)
+                        return true
+                    }
+                }
+            }
+
+            if (transferable.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+                @Suppress("UNCHECKED_CAST")
+                val files = transferable.getTransferData(DataFlavor.javaFileListFlavor) as List<File>
+                files.forEach { addPastedFile(it) }
+                return true
+            }
+            if (transferable.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+                val text = transferable.getTransferData(DataFlavor.stringFlavor) as String
+                inputArea.replaceSelection(text)
+                return true
+            }
+        } catch (e: Exception) {
+            appendSystemNotice("粘贴失败：${e.message}")
+        }
+        return false
+    }
+
+    /** 工具栏"Paste"按钮：不依赖任何键盘事件路由，直接读一次系统剪贴板 */
+    private fun pasteFromClipboardButton() {
+        val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+        val contents = clipboard.getContents(null)
+        if (contents == null) {
+            appendSystemNotice("剪贴板是空的")
+            return
+        }
+        val handled = handlePastedTransferable(contents)
+        if (!handled) {
+            val flavors = contents.transferDataFlavors.joinToString(", ") { it.mimeType ?: it.toString() }
+            appendSystemNotice("剪贴板里没有识别到图片/文件/文本，可用的数据类型：$flavors")
+        }
+    }
+
+    /** 粘贴板里直接是图片数据（比如截图工具复制的图）时，编码成附件 */
+    private fun addPastedImage(image: Image) {
+        try {
+            val bufferedImage = image as? BufferedImage ?: run {
+                val bi = BufferedImage(image.getWidth(null), image.getHeight(null), BufferedImage.TYPE_INT_ARGB)
+                val g = bi.createGraphics()
+                g.drawImage(image, 0, 0, null)
+                g.dispose()
+                bi
+            }
+            val baos = ByteArrayOutputStream()
+            ImageIO.write(bufferedImage, "png", baos)
+            val base64 = Base64.getEncoder().encodeToString(baos.toByteArray())
+            val name = "粘贴的图片-${pendingImages.size + 1}.png"
+            pendingImages[name] = ImageAttachment("image/png", base64)
+            refreshAttachmentChips()
+        } catch (e: Exception) {
+            appendSystemNotice("处理粘贴的图片失败：${e.message}")
+        }
+    }
+
+    /** 粘贴板里是文件（从文件管理器复制过来）时，按图片/文本分别处理成附件 */
+    private fun addPastedFile(file: File) {
+        val ext = file.extension.lowercase()
+        if (ext in setOf("png", "jpg", "jpeg", "gif", "webp")) {
+            try {
+                val bytes = Files.readAllBytes(file.toPath())
+                val base64 = Base64.getEncoder().encodeToString(bytes)
+                pendingImages[file.name] = ImageAttachment(guessImageMimeType(file), base64)
+                refreshAttachmentChips()
+            } catch (e: Exception) {
+                appendSystemNotice("读取粘贴的图片文件失败：${e.message}")
+            }
+        } else {
+            try {
+                val content = Files.readString(file.toPath())
+                val truncated = if (content.length > 8000) content.take(8000) + "\n...(内容过长，已截断)" else content
+                pendingLocalFiles[file.name] = truncated
+                refreshAttachmentChips()
+            } catch (e: Exception) {
+                appendSystemNotice("读取粘贴的文件失败（可能是二进制文件）：${e.message}")
+            }
+        }
     }
 
     /** 供外部 Action（如"发送选中代码到对话"）调用，往输入框里塞文本 */
@@ -292,21 +431,126 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
 
     private fun refreshAttachmentChips() {
         attachmentBar.removeAll()
-        val allChips = pendingLocalFiles.keys.map { name -> ("File: $name") to { pendingLocalFiles.remove(name); refreshAttachmentChips() } } +
-                pendingImages.keys.map { name -> ("Img: $name") to { pendingImages.remove(name); refreshAttachmentChips() } }
 
-        allChips.forEach { (label, onRemove) ->
-            val chip = JPanel(FlowLayout(FlowLayout.LEFT, 4, 0))
-            chip.add(JLabel(label))
-            val removeBtn = JButton("x")
-            removeBtn.margin = java.awt.Insets(0, 4, 0, 4)
-            removeBtn.addActionListener { onRemove() }
-            chip.add(removeBtn)
-            attachmentBar.add(chip)
+        pendingLocalFiles.keys.toList().forEach { name ->
+            attachmentBar.add(buildFileChip(name) {
+                pendingLocalFiles.remove(name)
+                refreshAttachmentChips()
+            })
         }
-        attachmentBar.isVisible = allChips.isNotEmpty()
+        pendingImages.entries.toList().forEach { (name, attachment) ->
+            attachmentBar.add(buildImageChip(name, attachment) {
+                pendingImages.remove(name)
+                refreshAttachmentChips()
+            })
+        }
+
+        val hasAttachments = pendingLocalFiles.isNotEmpty() || pendingImages.isNotEmpty()
+        attachmentBar.isVisible = hasAttachments
         attachmentBar.revalidate()
         attachmentBar.repaint()
+    }
+
+    /** 圆角小胶囊样式的附件条目：图标 + 文件名 + 删除按钮 */
+    private fun buildChip(icon: JComponent, name: String, onRemove: () -> Unit): JPanel {
+        val chip = object : JPanel(FlowLayout(FlowLayout.LEFT, 5, 2)) {
+            override fun paintComponent(g: java.awt.Graphics) {
+                val g2 = g.create() as java.awt.Graphics2D
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON)
+                g2.color = java.awt.Color(70, 70, 76)
+                g2.fillRoundRect(0, 0, width, height, 12, 12)
+                g2.dispose()
+                super.paintComponent(g)
+            }
+        }
+        chip.isOpaque = false
+        chip.border = BorderFactory.createEmptyBorder(2, 6, 2, 6)
+        chip.add(icon)
+        val nameLabel = JLabel(name)
+        nameLabel.foreground = java.awt.Color(220, 220, 220)
+        chip.add(nameLabel)
+        val removeBtn = JButton("×")
+        removeBtn.isBorderPainted = false
+        removeBtn.isContentAreaFilled = false
+        removeBtn.margin = java.awt.Insets(0, 2, 0, 2)
+        removeBtn.foreground = java.awt.Color(170, 170, 170)
+        removeBtn.addActionListener { onRemove() }
+        chip.add(removeBtn)
+        return chip
+    }
+
+    private fun buildFileChip(name: String, onRemove: () -> Unit): JPanel {
+        return buildChip(JLabel("📄"), name, onRemove)
+    }
+
+    private fun buildImageChip(name: String, attachment: ImageAttachment, onRemove: () -> Unit): JPanel {
+        val thumbIcon = decodeImageIcon(attachment, 16)
+        val iconLabel = if (thumbIcon != null) JLabel(thumbIcon) else JLabel("🖼")
+        val chip = buildChip(iconLabel, name, onRemove)
+        attachImageHoverPreview(chip, attachment)
+        return chip
+    }
+
+    /** 把 base64 图片数据解码成缩略图 ImageIcon（保持宽高比缩放到 maxDim），失败时返回 null */
+    private fun decodeImageIcon(attachment: ImageAttachment, maxDim: Int): ImageIcon? {
+        return try {
+            val bytes = Base64.getDecoder().decode(attachment.base64Data)
+            val original = ImageIO.read(java.io.ByteArrayInputStream(bytes)) ?: return null
+            val w = original.width
+            val h = original.height
+            val scale = maxDim.toDouble() / maxOf(w, h)
+            val newW = (w * scale).toInt().coerceAtLeast(1)
+            val newH = (h * scale).toInt().coerceAtLeast(1)
+            val scaled = original.getScaledInstance(newW, newH, Image.SCALE_SMOOTH)
+            ImageIcon(scaled)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private var hoverPreviewWindow: JWindow? = null
+    private var hoverPreviewTimer: Timer? = null
+
+    /** 鼠标移到图片附件条目上时，延迟一小会儿弹出一个较大尺寸的预览窗口 */
+    private fun attachImageHoverPreview(component: JComponent, attachment: ImageAttachment) {
+        component.addMouseListener(object : MouseAdapter() {
+            override fun mouseEntered(e: MouseEvent) {
+                hoverPreviewTimer?.stop()
+                hoverPreviewTimer = Timer(250) { showHoverPreview(component, attachment) }.apply {
+                    isRepeats = false
+                    start()
+                }
+            }
+            override fun mouseExited(e: MouseEvent) {
+                hoverPreviewTimer?.stop()
+                hideHoverPreview()
+            }
+        })
+    }
+
+    private fun showHoverPreview(anchor: JComponent, attachment: ImageAttachment) {
+        hideHoverPreview()
+        val icon = decodeImageIcon(attachment, 260) ?: return
+        val label = JLabel(icon)
+        label.border = BorderFactory.createLineBorder(java.awt.Color(90, 90, 90), 1)
+        val window = JWindow()
+        window.focusableWindowState = false
+        window.contentPane.add(label)
+        window.pack()
+        try {
+            val loc = anchor.locationOnScreen
+            window.setLocation(loc.x, loc.y - window.height - 8)
+        } catch (e: Exception) {
+            // 组件还没显示到屏幕上就忽略，不弹预览
+            return
+        }
+        window.isVisible = true
+        hoverPreviewWindow = window
+    }
+
+    private fun hideHoverPreview() {
+        hoverPreviewWindow?.dispose()
+        hoverPreviewWindow = null
     }
 
     // ---------------- @ 文件引用（已打开文件优先，其次是项目内文件，不包含依赖库/SDK） ----------------
