@@ -1,0 +1,15 @@
+<application>
+  <component name="OliCoderSettings">
+    <option name="activeProviderId" value="49bcb66a-3d05-4613-b890-47fbfb0bcaf2" />
+    <option name="providers">
+      <list>
+        <ProviderConfig>
+          <option name="baseUrl" value="https://api.deepseek.com" />
+          <option name="id" value="49bcb66a-3d05-4613-b890-47fbfb0bcaf2" />
+          <option name="model" value="deepseek-flash" />
+          <option name="name" value="deepseekv4" />
+        </ProviderConfig>
+      </list>
+    </option>
+  </component>
+</application>

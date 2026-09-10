@@ -46,9 +46,7 @@ import javax.imageio.ImageIO
 import javax.swing.*
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
-import javax.swing.event.HyperlinkEvent
 import javax.swing.filechooser.FileNameExtensionFilter
-import javax.swing.text.html.HTMLEditorKit
 
 class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
 
@@ -80,24 +78,10 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
     // 当前这一轮对话里，用户 "@" 引用的唯一文件（如果有且只有一个），用于自动应用时判断目标文件
     private var lastReferencedFile: VirtualFile? = null
 
-    private val transcript = JEditorPane().apply {
-        contentType = "text/html"
-        val kit = HTMLEditorKit()
-        // Swing 的 HTML 渲染引擎对内联 style 的级联支持并不完整，字号这类全局设置
-        // 用 StyleSheet 规则来定义才能可靠地应用到所有子元素上，避免出现字体忽大忽小的问题。
-        kit.styleSheet.addRule("body { font-family: sans-serif; font-size: 11px; color: #dddddd; }")
-        kit.styleSheet.addRule("td, div, span, b, i { font-size: 11px; }")
-        kit.styleSheet.addRule("pre { font-family: Monospaced; font-size: 10.5px; line-height: 1.35; }")
-        kit.styleSheet.addRule("a { color: #6cb6ff; text-decoration: none; }")
-        editorKit = kit
-        isEditable = false
-        text = wrapHtml("")
-        addHyperlinkListener { e ->
-            if (e.eventType == HyperlinkEvent.EventType.ACTIVATED) {
-                handleHyperlink(e.description)
-            }
-        }
-    }
+    // 用 JCEF 内嵌浏览器渲染聊天记录（支持 highlight.js 语法高亮），点击里面的 <a href="..."> 时
+    // 会把 href 原样传回 handleHyperlink，和以前 JEditorPane 的 HyperlinkListener 行为等价，
+    // 所以 apply:/keep:/undo:/diff: 那套超链接生成和处理逻辑完全不用改。
+    private val transcriptView = TranscriptView(onLinkClicked = { handleHyperlink(it) })
 
     private val inputArea = JBTextArea(4, 40).apply {
         lineWrap = true
@@ -146,7 +130,7 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         topRight.add(deleteButton)
         topBar.add(topRight, BorderLayout.EAST)
 
-        val scrollTranscript = JBScrollPane(transcript)
+        val scrollTranscript = transcriptView.component
 
         // ---- 输入框上方的图标工具栏：@ 引用 / 图片 / 本地文件 / 更多 ----
         val iconToolbar = JPanel(FlowLayout(FlowLayout.LEFT, 4, 2))
@@ -567,21 +551,25 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         return false
     }
 
-    /** 收集候选文件：已打开的文件在前，然后是项目内容范围里的其他文件（不含依赖库、SDK、.idea/.git 等噪音目录） */
+    /** 收集候选文件 + 文件夹：已打开的文件在前，然后是项目内容范围里的其他文件/文件夹
+     *（不含依赖库、SDK、.idea/.git 等噪音目录）。选中一个文件夹时会把它下面的文件都作为上下文，见 buildContextualMessages。 */
     private fun collectCandidateFiles(): List<VirtualFile> {
         val openFiles = FileEditorManager.getInstance(project).openFiles.toList()
         val openSet = openFiles.toHashSet()
 
         val projectFiles = mutableListOf<VirtualFile>()
+        val projectDirs = mutableListOf<VirtualFile>()
         val fileIndex = ProjectRootManager.getInstance(project).fileIndex
         fileIndex.iterateContent { vf ->
-            if (!vf.isDirectory && vf !in openSet && !isInExcludedDir(vf)) {
-                projectFiles.add(vf)
+            if (vf !in openSet && !isInExcludedDir(vf) && vf.name !in excludedDirNames) {
+                if (vf.isDirectory) projectDirs.add(vf) else projectFiles.add(vf)
             }
-            projectFiles.size < 3000 // 文件太多的项目做个上限，避免卡顿
+            projectFiles.size + projectDirs.size < 4000 // 文件太多的项目做个上限，避免卡顿
         }
         projectFiles.sortBy { it.name.lowercase() }
-        return openFiles + projectFiles
+        projectDirs.sortBy { it.name.lowercase() }
+        // 文件夹排在普通项目文件前面，方便一次性引用整个目录
+        return openFiles + projectDirs + projectFiles
     }
 
     private fun labelForFile(vf: VirtualFile): String {
@@ -592,7 +580,8 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         } else {
             parentPath ?: ""
         }
-        return if (relativeDir.isBlank()) vf.name else "${vf.name}   —   $relativeDir"
+        val base = if (relativeDir.isBlank()) vf.name else "${vf.name}   —   $relativeDir"
+        return if (vf.isDirectory) "📁 $base" else base
     }
 
     private fun showFileMentionPopup(atOffset: Int, removeTypedAt: Boolean) {
@@ -602,6 +591,7 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         val listModel = DefaultListModel<VirtualFile>()
         allCandidates.take(500).forEach { listModel.addElement(it) }
         val list = JBList(listModel)
+        list.selectionMode = ListSelectionModel.MULTIPLE_INTERVAL_SELECTION
         list.cellRenderer = object : DefaultListCellRenderer() {
             override fun getListCellRendererComponent(
                 l: JList<*>?, value: Any?, index: Int, isSelected: Boolean, cellHasFocus: Boolean
@@ -615,17 +605,20 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
             }
         }
         val searchField = JBTextField()
+        val hintLine = JLabel("Ctrl/Cmd+点击 或 Shift+点击 可多选文件/文件夹，选中文件夹会引用整个目录")
+        hintLine.foreground = java.awt.Color(140, 140, 140)
 
         val panel = JPanel(BorderLayout())
         panel.add(searchField, BorderLayout.NORTH)
         panel.add(JBScrollPane(list), BorderLayout.CENTER)
-        panel.preferredSize = Dimension(420, 280)
+        panel.add(hintLine, BorderLayout.SOUTH)
+        panel.preferredSize = Dimension(440, 300)
 
         val popup = JBPopupFactory.getInstance()
             .createComponentPopupBuilder(panel, searchField)
             .setRequestFocus(true)
             .setResizable(true)
-            .setTitle("选择要引用的文件（🟢 = 已打开）")
+            .setTitle("选择要引用的文件或文件夹（🟢 = 已打开，📁 = 文件夹，可多选）")
             .createPopup()
 
         fun applyFilter() {
@@ -643,8 +636,9 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         })
 
         fun choose() {
-            val selected = list.selectedValue ?: return
-            insertFileMention(selected, atOffset, removeTypedAt)
+            val selected = list.selectedValuesList
+            if (selected.isEmpty()) return
+            insertFileMentions(selected, atOffset, removeTypedAt)
             popup.closeOk(null)
         }
 
@@ -666,11 +660,14 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         popup.showInScreenCoordinates(inputArea, inputArea.locationOnScreen)
     }
 
-    private fun insertFileMention(vf: VirtualFile, atOffset: Int, removeTypedAt: Boolean) {
-        val fileName = vf.name
-        mentionedFiles[fileName] = vf
+    /** 支持一次插入多个 @ 引用（多文件 / 文件夹），文件夹在展示上加 "/" 后缀区分 */
+    private fun insertFileMentions(items: List<VirtualFile>, atOffset: Int, removeTypedAt: Boolean) {
+        val insertText = items.joinToString("") { vf ->
+            mentionedFiles[vf.name] = vf
+            val displayName = if (vf.isDirectory) "${vf.name}/" else vf.name
+            "@$displayName "
+        }
 
-        val insertText = "@$fileName "
         suppressMentionListener = true
         try {
             if (removeTypedAt) {
@@ -684,20 +681,65 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         inputArea.requestFocusInWindow()
     }
 
-    /** 把用户消息里 "@文件名" 引用、以及工具栏里手动选的本地文件，都拼成额外上下文 */
+    /** 单个目录里最多展开多少个文件作为上下文，避免一次引用整个大目录把上下文撑爆 */
+    private val maxFilesPerFolderMention = 30
+    private val maxFileContentChars = 6000
+
+    /** 递归收集某个文件夹下的所有文件（跳过 .idea/.git/node_modules 等噪音目录），按数量上限截断 */
+    private fun collectFilesUnderFolder(folder: VirtualFile, limit: Int): List<VirtualFile> {
+        val result = mutableListOf<VirtualFile>()
+        fun walk(dir: VirtualFile) {
+            if (result.size >= limit) return
+            for (child in dir.children) {
+                if (result.size >= limit) return
+                if (child.isDirectory) {
+                    if (child.name !in excludedDirNames) walk(child)
+                } else {
+                    result.add(child)
+                }
+            }
+        }
+        walk(folder)
+        return result
+    }
+
+    private fun fileContentBlock(name: String, vf: VirtualFile): String {
+        val content = try {
+            VfsUtilCore.loadText(vf)
+        } catch (e: Exception) {
+            "(读取文件失败：${e.message})"
+        }
+        val truncated = if (content.length > maxFileContentChars)
+            content.take(maxFileContentChars) + "\n...(内容过长，已截断)"
+        else content
+        return "文件 $name 的内容：\n```\n$truncated\n```"
+    }
+
+    /** 把用户消息里 "@文件名/@文件夹名" 引用、以及工具栏里手动选的本地文件，都拼成额外上下文。
+     *  引用的是文件夹时，会展开成该目录下每个文件各一段上下文（受 maxFilesPerFolderMention 限制）。 */
     private fun buildContextualMessages(userText: String): List<ChatMessage> {
         val referencedByAt = mentionedFiles.filterKeys { userText.contains("@$it") }
         if (referencedByAt.isEmpty() && pendingLocalFiles.isEmpty()) return history
 
         val blocks = mutableListOf<String>()
         referencedByAt.forEach { (name, vf) ->
-            val content = try {
-                VfsUtilCore.loadText(vf)
-            } catch (e: Exception) {
-                "(读取文件失败：${e.message})"
+            if (vf.isDirectory) {
+                val files = collectFilesUnderFolder(vf, maxFilesPerFolderMention)
+                if (files.isEmpty()) {
+                    blocks.add("文件夹 $name/ 下没有找到可读取的文件")
+                } else {
+                    val basePath = vf.path
+                    files.forEach { f ->
+                        val relativeName = f.path.removePrefix(basePath).trimStart('/')
+                        blocks.add(fileContentBlock("$name/$relativeName", f))
+                    }
+                    if (files.size >= maxFilesPerFolderMention) {
+                        blocks.add("(文件夹 $name/ 下文件较多，仅取了前 $maxFilesPerFolderMention 个，其余未包含)")
+                    }
+                }
+            } else {
+                blocks.add(fileContentBlock(name, vf))
             }
-            val truncated = if (content.length > 6000) content.take(6000) + "\n...(内容过长，已截断)" else content
-            blocks.add("文件 $name 的内容：\n```\n$truncated\n```")
         }
         pendingLocalFiles.forEach { (name, content) ->
             blocks.add("文件 $name 的内容：\n```\n$content\n```")
@@ -782,7 +824,8 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         val imageNames = pendingImages.keys.toList()
         val imagesForThisMessage = pendingImages.values.toList()
         val referencedByAt = mentionedFiles.filterKeys { userText.contains("@$it") }
-        lastReferencedFile = referencedByAt.values.singleOrNull()
+        // 自动应用代码的目标只能是单个文件；引用的是文件夹（或多个文件）时，退回"当前打开的编辑器"或手动应用
+        lastReferencedFile = referencedByAt.values.singleOrNull()?.takeUnless { it.isDirectory }
         val contextMessages = buildContextualMessages(userText)
         val userMessage = ChatMessage("user", userText, images = imagesForThisMessage)
         val messagesToSend = contextMessages + userMessage
@@ -1029,7 +1072,10 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         val langLabel = if (lang.isNotBlank())
             "<div style=\"color:#8a8f98; font-size:9px; margin:3px 0 1px 2px;\">${escapeHtml(lang)}</div>"
         else ""
-        return """<div style="margin:2px 0;">$langLabel<pre style="background-color:#1e1f22; color:#d4d4d4; padding:6px; border-radius:5px; overflow-x:auto; font-family:Monospaced; font-size:10.5px; margin:0; white-space:pre-wrap;">$escapedCode</pre></div>"""
+        // highlight.js 通过 <code class="language-xxx"> 识别语言；语言名不合法或为空时它会自动检测，
+        // 所以这里即使拿不到明确的语言标记也不影响高亮，只是可能不那么精准。
+        val hljsLang = lang.trim().lowercase().ifBlank { "plaintext" }
+        return """<div style="margin:2px 0;">$langLabel<pre style="background-color:#1e1f22; border-radius:5px; margin:0;"><code class="language-$hljsLang" style="font-family:Monospaced;">$escapedCode</code></pre></div>"""
     }
 
     private fun appendSystemNotice(text: String) {
@@ -1040,12 +1086,8 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
     }
 
     private fun renderTranscript() {
-        transcript.text = wrapHtml(messageBuffer.toString())
-        transcript.caretPosition = transcript.document.length
+        transcriptView.setHtml(messageBuffer.toString())
     }
-
-    private fun wrapHtml(body: String): String =
-        "<html><body style='font-family:sans-serif;font-size:11px;'>$body</body></html>"
 
     private fun escapeHtml(text: String): String =
         text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br/>")

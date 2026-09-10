@@ -7,11 +7,11 @@
     </option>
   </component>
   <component name="FileEditorManager">
-    <leaf ideFingerprint="1ygal0e8krmy0" SIDE_TABS_SIZE_LIMIT_KEY="-1">
+    <leaf ideFingerprint="21fyvzmwxwl8i" SIDE_TABS_SIZE_LIMIT_KEY="-1">
       <file>
         <entry file="file://$PROJECT_DIR$/ai.js">
           <provider editor-type-id="text-editor" selected="true">
-            <state relative-caret-position="-811">
+            <state relative-caret-position="22">
               <caret line="29" selection-start-line="29" selection-end-line="29" />
             </state>
           </provider>
@@ -22,8 +22,8 @@
   <component name="FileTypeUsageLocalSummary"><![CDATA[{
   "data": {
     "JavaScript": {
-      "usageCount": 8,
-      "lastUsed": 1788965995645
+      "usageCount": 9,
+      "lastUsed": 1789048755893
     },
     "DIFF": {
       "usageCount": 2,
@@ -78,10 +78,12 @@
       <window_info anchor="bottom" id="Services" order="8" />
       <window_info anchor="right" id="Coverage" order="0" side_tool="true" />
       <window_info anchor="right" id="Notifications" order="1" weight="0.25" />
+      <window_info active="true" anchor="right" id="Oli Coder" order="2" visible="true" weight="0.4567857" />
       <window_info active="true" anchor="right" id="AI Coder" order="2" visible="true" weight="0.30964285" />
-      <unified_weights left="0.2117857" right="0.30964285" />
+      <unified_weights left="0.2117857" right="0.4567857" />
     </layout>
     <recentWindows>
+      <value>Oli Coder</value>
       <value>AI Coder</value>
       <value>Project</value>
     </recentWindows>
@@ -95,7 +97,7 @@
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/ai.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-811">
+        <state relative-caret-position="22">
           <caret line="29" selection-start-line="29" selection-end-line="29" />
         </state>
       </provider>

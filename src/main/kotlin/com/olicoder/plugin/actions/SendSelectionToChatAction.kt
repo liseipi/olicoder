@@ -25,7 +25,8 @@ class SendSelectionToChatAction : AnAction("发送选中代码到 AI 对话") {
 
         val toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Oli Coder")
         toolWindow?.show {
-            val panel = ChatToolWindowFactory.panels[project]
+            // 多标签之后，"当前面板"指的是用户正在看的那一个标签，而不是固定的单例面板
+            val panel = ChatToolWindowFactory.activePanel(project)
             panel?.insertIntoInput("以下是来自 $fileName 的代码：\n```\n$selectedText\n```\n")
         }
     }
