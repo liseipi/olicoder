@@ -100,12 +100,55 @@ class TranscriptView(private val onLinkClicked: (String) -> Unit) {
               <meta charset="utf-8">
               <style>
                 $hljsTheme
-                html, body { margin: 0; padding: 0; background: #2b2b2b; }
-                body { font-family: sans-serif; font-size: 12px; color: #dddddd; padding: 6px 8px 16px 8px; }
+                html, body { margin: 0; padding: 0; background: #26282c; }
+                body { font-family: "Segoe UI", system-ui, sans-serif; font-size: 12px; color: #dddddd; padding: 4px 10px 18px 10px; }
                 a { color: #6cb6ff; text-decoration: none; cursor: pointer; }
                 a:hover { text-decoration: underline; }
-                pre { margin: 0; overflow-x: auto; border-radius: 6px; }
-                pre code.hljs { padding: 8px !important; border-radius: 6px; font-size: 11px; line-height: 1.4; }
+
+                /* ---- 消息行：头像 + 气泡，左右布局用 flex 而不是老式 table ---- */
+                .msg-row { display: flex; align-items: flex-start; gap: 8px; margin: 14px 0; }
+                .msg-row.user { flex-direction: row-reverse; }
+                .avatar {
+                    flex: 0 0 26px; width: 26px; height: 26px; border-radius: 50%;
+                    display: flex; align-items: center; justify-content: center;
+                    font-size: 12px; color: #fff; user-select: none;
+                }
+                .avatar.user-avatar { background: linear-gradient(135deg, #4f8ff0, #2b5278); }
+                .avatar.assistant-avatar { background: linear-gradient(135deg, #6b6f76, #43464c); }
+                .bubble-col { display: flex; flex-direction: column; max-width: 82%; }
+                .msg-row.user .bubble-col { align-items: flex-end; }
+                .bubble-name { font-size: 10px; color: #8b8f96; margin: 0 2px 3px 2px; }
+                .bubble {
+                    padding: 8px 11px; border-radius: 11px; line-height: 1.55;
+                    word-wrap: break-word; overflow-wrap: anywhere;
+                }
+                .bubble.user-bubble {
+                    background: linear-gradient(135deg, #3178dd, #2760b0);
+                    color: #ffffff; border-top-right-radius: 3px;
+                }
+                .bubble.assistant-bubble {
+                    background: #34373c; color: #e4e4e4; border-top-left-radius: 3px;
+                }
+                .attach-line { color: #cfe0f5; font-size: 10px; margin-top: 4px; opacity: 0.9; }
+
+                /* ---- 代码块：语言 tag + 复制按钮的头部条，深色卡片 ---- */
+                .code-block { margin: 6px 0; border-radius: 8px; overflow: hidden; border: 1px solid #43464c; }
+                .code-header {
+                    display: flex; align-items: center; justify-content: space-between;
+                    background: #26282c; padding: 4px 10px; font-size: 10px; color: #9aa0a8;
+                }
+                .code-lang { text-transform: lowercase; letter-spacing: 0.3px; }
+                .code-actions a { color: #8ab4f8; margin-left: 12px; font-size: 10px; }
+                .code-block pre { margin: 0; overflow-x: auto; }
+                .code-block pre code.hljs { padding: 10px !important; border-radius: 0; font-size: 11px; line-height: 1.45; }
+
+                /* ---- 系统提示 / 应用变更操作条 / 手动应用链接 ---- */
+                .sys-notice { text-align: center; color: #8b8f95; font-size: 11px; margin: 10px 0; font-style: italic; }
+                .change-bar, .apply-links {
+                    margin: 2px 4px 14px 34px; padding: 6px 10px; font-size: 11px; color: #cfd2d6;
+                    background: #2e3136; border-left: 3px solid #4c8bf5; border-radius: 5px;
+                }
+                .change-bar a, .apply-links a { color: #8ab4f8; margin: 0 3px; }
               </style>
               <script>
                 $hljsScript

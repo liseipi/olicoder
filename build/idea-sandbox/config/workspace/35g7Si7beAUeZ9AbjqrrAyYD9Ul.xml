@@ -31,6 +31,7 @@
     }
   }
 }]]></component>
+  <component name="GitSEFilterConfiguration"><![CDATA[{}]]></component>
   <component name="IdeDocumentHistory">
     <changedPaths>
       <option value="$PROJECT_DIR$/ai.js" />
@@ -93,6 +94,10 @@
       <screen x="57" y="25" width="1623" height="1025" />
     </state>
     <state x="377" y="181" key="SettingsEditor/57.25.1623.1025@57.25.1623.1025" timestamp="1788086335118" />
+    <state x="532" y="261" key="search.everywhere.popup" timestamp="1789049115523">
+      <screen x="57" y="25" width="1623" height="1025" />
+    </state>
+    <state x="532" y="261" key="search.everywhere.popup/57.25.1623.1025@57.25.1623.1025" timestamp="1789049115523" />
   </component>
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/ai.js">

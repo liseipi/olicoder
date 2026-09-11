@@ -22,6 +22,8 @@ import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.icons.AllIcons
+import com.intellij.util.ui.JBUI
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextArea
@@ -37,6 +39,7 @@ import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.Image
 import java.awt.datatransfer.DataFlavor
+import java.awt.datatransfer.StringSelection
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -89,11 +92,40 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
     }
 
     private val providerCombo = ComboBox<ProviderConfig>()
-    private val sendButton = JButton("发送 (Ctrl+Enter)")
+    private val sendButton = JButton("发送 (Ctrl+Enter)").apply {
+        putClientProperty("JButton.buttonType", "default")
+    }
     private val statusLabel = JLabel(" ")
     private val attachmentBar = JPanel(FlowLayout(FlowLayout.LEFT, 6, 2))
 
     private var suppressMentionListener = false
+
+    /** 扁平、无边框的图标按钮：图标本身足够表达意思，不需要按钮的立体边框，视觉上更接近现代聊天工具的工具栏 */
+    private fun flatIconButton(icon: Icon, tooltip: String, onClick: (JButton) -> Unit): JButton {
+        val button = JButton(icon)
+        button.toolTipText = tooltip
+        button.isBorderPainted = false
+        button.isContentAreaFilled = false
+        button.isFocusPainted = false
+        button.isOpaque = false
+        button.margin = JBUI.insets(4)
+        button.addActionListener { onClick(button) }
+        return button
+    }
+
+    /** 和 flatIconButton 视觉风格一致，但用于没有稳定图标可用的场景（比如 "@"），改成加粗文字 */
+    private fun flatTextIconButton(text: String, tooltip: String, onClick: (JButton) -> Unit): JButton {
+        val button = JButton(text)
+        button.toolTipText = tooltip
+        button.isBorderPainted = false
+        button.isContentAreaFilled = false
+        button.isFocusPainted = false
+        button.isOpaque = false
+        button.margin = JBUI.insets(4, 9)
+        button.font = button.font.deriveFont(java.awt.Font.BOLD)
+        button.addActionListener { onClick(button) }
+        return button
+    }
 
     init {
         preferredSize = Dimension(400, 600)
@@ -109,51 +141,27 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
             }
         }
 
-        val topBar = JPanel(BorderLayout())
-        val addButton = JButton("＋").apply {
-            toolTipText = "新增模型配置"
-            addActionListener { openAddDialog() }
-        }
-        val editButton = JButton("✎").apply {
-            toolTipText = "编辑当前选中的配置"
-            addActionListener { openEditDialog() }
-        }
-        val deleteButton = JButton("🗑").apply {
-            toolTipText = "删除当前选中的配置"
-            addActionListener { deleteCurrentConfig() }
-        }
-        val topRight = JPanel()
-        topRight.add(JLabel("模型："))
-        topRight.add(providerCombo)
-        topRight.add(addButton)
-        topRight.add(editButton)
-        topRight.add(deleteButton)
-        topBar.add(topRight, BorderLayout.EAST)
+        // 模型的"增加/编辑/删除"统一挪到设置弹窗（工作区头部的齿轮图标）里管理了，
+        // 这里只保留一个精简的模型选择行，用来切换"这个对话用哪个已配置好的模型"。
+        val topBar = JPanel(FlowLayout(FlowLayout.LEFT, 6, 2))
+        topBar.border = JBUI.Borders.empty(4, 8, 2, 8)
+        topBar.add(JLabel("模型："))
+        topBar.add(providerCombo)
 
         val scrollTranscript = transcriptView.component
 
-        // ---- 输入框上方的图标工具栏：@ 引用 / 图片 / 本地文件 / 更多 ----
-        val iconToolbar = JPanel(FlowLayout(FlowLayout.LEFT, 4, 2))
-        val mentionIconButton = JButton("@").apply {
-            toolTipText = "引用项目里的文件"
-            addActionListener { showFileMentionPopup(inputArea.caretPosition, removeTypedAt = false) }
+        // ---- 输入框上方的图标工具栏：@ 引用 / 图片 / 本地文件 / 更多，扁平图标按钮，视觉上更接近现代聊天工具 ----
+        val iconToolbar = JPanel(FlowLayout(FlowLayout.LEFT, 2, 2))
+        iconToolbar.border = JBUI.Borders.empty(4, 4, 0, 4)
+        val mentionIconButton = flatTextIconButton("@", "引用项目里的文件或文件夹") {
+            showFileMentionPopup(inputArea.caretPosition, removeTypedAt = false)
         }
-        val imageIconButton = JButton("Img").apply {
-            toolTipText = "上传图片（需要模型支持视觉理解）"
-            addActionListener { pickImageFile() }
+        val imageIconButton = flatIconButton(AllIcons.FileTypes.Image, "上传图片（需要模型支持视觉理解）") { pickImageFile() }
+        val localFileIconButton = flatIconButton(AllIcons.General.OpenDisk, "从磁盘选择文件作为上下文") { pickLocalFile() }
+        val pasteIconButton = flatIconButton(AllIcons.Actions.MenuPaste, "粘贴剪贴板里的图片或文件（如果 Ctrl/Cmd+V 没反应就点这个）") {
+            pasteFromClipboardButton()
         }
-        val localFileIconButton = JButton("File").apply {
-            toolTipText = "从磁盘选择文件作为上下文"
-            addActionListener { pickLocalFile() }
-        }
-        val pasteIconButton = JButton("Paste").apply {
-            toolTipText = "粘贴剪贴板里的图片或文件（如果 Ctrl/Cmd+V 没反应就点这个）"
-            addActionListener { pasteFromClipboardButton() }
-        }
-        val moreIconButton = JButton("...").apply {
-            toolTipText = "更多"
-            addActionListener { showMoreMenu(this) }
-        }
+        val moreIconButton = flatIconButton(AllIcons.Actions.More, "更多") { showMoreMenu(it) }
         iconToolbar.add(mentionIconButton)
         iconToolbar.add(imageIconButton)
         iconToolbar.add(localFileIconButton)
@@ -164,6 +172,7 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         bottomPanel.add(iconToolbar, BorderLayout.NORTH)
 
         val inputScroll = JBScrollPane(inputArea)
+        inputScroll.border = JBUI.Borders.empty(2, 8)
         val inputWithChips = JPanel(BorderLayout())
         inputWithChips.add(attachmentBar, BorderLayout.NORTH)
         inputWithChips.add(inputScroll, BorderLayout.CENTER)
@@ -172,8 +181,10 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
 
         val hintLabel = JLabel("输入 @ 引用文件 / 点图标上传 / 也可以直接粘贴图片或文件")
         hintLabel.foreground = java.awt.Color(140, 140, 140)
+        hintLabel.border = JBUI.Borders.empty(2, 9, 4, 9)
 
         val sendPanel = JPanel(BorderLayout())
+        sendPanel.border = JBUI.Borders.empty(0, 8, 8, 8)
         sendPanel.add(sendButton, BorderLayout.EAST)
         sendPanel.add(statusLabel, BorderLayout.WEST)
 
@@ -750,7 +761,7 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         return withContext
     }
 
-    // ---------------- Provider 增删改 ----------------
+    // ---------------- Provider 选择（增删改已经统一挪到 设置 弹窗里了） ----------------
 
     private fun refreshProviderCombo(selectId: String? = null) {
         providerCombo.removeAllItems()
@@ -760,50 +771,21 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         if (target != null) providerCombo.selectedItem = target
     }
 
-    private fun openAddDialog() {
-        val dialog = ProviderEditDialog(project, existing = null)
-        if (dialog.showAndGet()) {
-            val newConfig = dialog.buildResult()
-            settingsState.providers.add(newConfig)
-            settingsState.activeProviderId = newConfig.id
-            dialog.getTypedApiKeyOrNull()?.let { TokenStorage.saveToken(newConfig.id, it) }
-            refreshProviderCombo(selectId = newConfig.id)
-        }
+    /** 供 ChatWorkspacePanel 调用：从"设置"弹窗返回后，把这个模型下拉刷新一下，
+     *  这样如果用户刚新增/编辑/删除了某个配置，不用重开插件就能立刻在下拉里看到 */
+    fun refreshProviderConfigsExternally() {
+        val currentId = (providerCombo.selectedItem as? ProviderConfig)?.id
+        refreshProviderCombo(selectId = currentId)
     }
 
-    private fun openEditDialog() {
-        val selected = providerCombo.selectedItem as? ProviderConfig
-        if (selected == null) {
-            openAddDialog()
-            return
-        }
-        val dialog = ProviderEditDialog(project, existing = selected)
-        if (dialog.showAndGet()) {
-            val updated = dialog.buildResult()
-            val index = settingsState.providers.indexOfFirst { it.id == updated.id }
-            if (index >= 0) settingsState.providers[index] = updated
-            dialog.getTypedApiKeyOrNull()?.let { TokenStorage.saveToken(updated.id, it) }
-            refreshProviderCombo(selectId = updated.id)
-        }
-    }
-
-    private fun deleteCurrentConfig() {
-        val selected = providerCombo.selectedItem as? ProviderConfig ?: return
-        val confirm = Messages.showYesNoDialog(
-            project,
-            "确定要删除配置 \"${selected.name}\" 吗？",
-            "删除模型配置",
-            Messages.getQuestionIcon()
-        )
-        if (confirm == Messages.YES) {
-            settingsState.providers.removeIf { it.id == selected.id }
-            TokenStorage.removeToken(selected.id)
-            if (settingsState.activeProviderId == selected.id) {
-                settingsState.activeProviderId = settingsState.providers.firstOrNull()?.id
-            }
-            refreshProviderCombo()
-        }
-    }
+    /** 供 ChatWorkspacePanel 判断"点 + 新建标签时，是否已经有一个还没用过的空白标签可以直接复用"。
+     *  判断标准：没有聊天记录、输入框是空的、也没有挂着任何 @ 引用 / 本地文件 / 图片附件。 */
+    fun isFreshEmpty(): Boolean =
+        history.isEmpty() &&
+            inputArea.text.isBlank() &&
+            mentionedFiles.isEmpty() &&
+            pendingLocalFiles.isEmpty() &&
+            pendingImages.isEmpty()
 
     // ---------------- 发送 / 接收消息 ----------------
 
@@ -812,7 +794,7 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         if (userText.isBlank() && pendingImages.isEmpty()) return
         val config = providerCombo.selectedItem as? ProviderConfig
         if (config == null) {
-            appendSystemNotice("还没有任何模型配置，请点右上角\"＋\"新增一个")
+            appendSystemNotice("还没有任何模型配置，请点顶部工具栏的\"设置\"图标新增一个")
             return
         }
         val apiKey = TokenStorage.getToken(config.id)
@@ -882,16 +864,16 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
     private fun appendUserMessage(content: String, imageNames: List<String>) {
         val safe = escapeHtml(content)
         val imagesLine = if (imageNames.isNotEmpty())
-            "<div style=\"color:#cde; font-size:10px; margin-top:3px;\">🖼 ${imageNames.joinToString(", ") { escapeHtml(it) }}</div>"
+            "<div class=\"attach-line\">🖼 ${imageNames.joinToString(", ") { escapeHtml(it) }}</div>"
         else ""
         messageBuffer.append(
             """
-            <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="right">
-              <div style="color:#888; font-size:10px; margin:6px 4px 2px 0;">你</div>
-              <table cellpadding="6" cellspacing="0" style="background-color:#2b5278; border-radius:6px;">
-                <tr><td style="color:#ffffff;">$safe$imagesLine</td></tr>
-              </table>
-            </td></tr></table>
+            <div class="msg-row user">
+              <div class="avatar user-avatar">你</div>
+              <div class="bubble-col">
+                <div class="bubble user-bubble">$safe$imagesLine</div>
+              </div>
+            </div>
             """.trimIndent()
         )
         renderTranscript()
@@ -899,7 +881,7 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
 
     private fun appendAssistantMessagePlaceholder() {
         lastAssistantBubbleStart = messageBuffer.length
-        messageBuffer.append(renderAssistantBubble("…"))
+        messageBuffer.append(renderAssistantBubble("…", finalized = false))
         renderTranscript()
     }
 
@@ -908,7 +890,7 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         val before = messageBuffer.substring(0, lastAssistantBubbleStart)
         messageBuffer.setLength(0)
         messageBuffer.append(before)
-        messageBuffer.append(renderAssistantBubble(content))
+        messageBuffer.append(renderAssistantBubble(content, finalized = false))
         renderTranscript()
     }
 
@@ -919,31 +901,28 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         messageBuffer.setLength(0)
         messageBuffer.append(before)
 
-        val codeBlockRegex = Regex("```[a-zA-Z0-9_+-]*\\n([\\s\\S]*?)```")
-        val matches = codeBlockRegex.findAll(content).toList()
-
-        messageBuffer.append(renderAssistantBubble(content))
+        // renderAssistantBubble(finalized = true) 内部会把这条回复里每一段代码依次 push 进
+        // pendingCodeBlocks（用于"复制"按钮），这里记下 push 之前的长度，之后就能直接算出
+        // 这条消息对应的下标区间，不需要再单独用正则扫一遍、重复 add 一次。
+        val blocksBefore = pendingCodeBlocks.size
+        messageBuffer.append(renderAssistantBubble(content, finalized = true))
+        val registeredIndices = (blocksBefore until pendingCodeBlocks.size).toList()
 
         when {
-            matches.size == 1 -> {
-                val code = matches[0].groupValues[1]
+            registeredIndices.size == 1 -> {
+                val idx = registeredIndices[0]
+                val code = pendingCodeBlocks[idx]
                 val targetFile = resolveTargetFile()
                 if (targetFile != null) {
                     autoApplyChange(targetFile, code)
                 } else {
                     // 没有能确定的目标文件（没有 @ 引用，也没有打开的编辑器），退回手动方式
-                    val idx = pendingCodeBlocks.size
-                    pendingCodeBlocks.add(code)
                     appendManualApplyLinks(listOf(idx))
                 }
             }
-            matches.size > 1 -> {
+            registeredIndices.size > 1 -> {
                 // 多段代码可能对应多个文件，无法安全地自动判断，走原来的手动确认方式
-                val indices = matches.map { match ->
-                    pendingCodeBlocks.add(match.groupValues[1])
-                    pendingCodeBlocks.size - 1
-                }
-                appendManualApplyLinks(indices)
+                appendManualApplyLinks(registeredIndices)
             }
         }
         renderTranscript()
@@ -953,9 +932,7 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         val linksHtml = indices.joinToString(" &nbsp;|&nbsp; ") { idx ->
             "<a href=\"apply:$idx\">📋 应用第${idx + 1}段代码到编辑器</a>"
         }
-        messageBuffer.append(
-            """<table width="100%"><tr><td align="left"><div style="margin:2px 0 10px 6px; font-size:11px;">$linksHtml</div></td></tr></table>"""
-        )
+        messageBuffer.append("""<div class="apply-links">$linksHtml</div>""")
     }
 
     /** 判断这次要自动改哪个文件：优先用本轮 @ 引用的唯一文件，其次用当前打开的编辑器 */
@@ -1012,13 +989,12 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         }
         val diffPart = "<a href=\"diff:$changeId\">查看变更</a>"
 
-        return """<!--CB$changeId--><table width="100%"><tr><td align="left">
-                <div style="margin:2px 0 10px 6px; font-size:11px;">
+        return """<!--CB$changeId--><div class="change-bar">
                   $headline &nbsp;
                   $keepPart &nbsp;|&nbsp;
                   $undoPart &nbsp;|&nbsp;
                   $diffPart
-                </div></td></tr></table><!--/CB$changeId-->"""
+                </div><!--/CB$changeId-->"""
     }
 
     /** 在 messageBuffer 里原地找到某个 change 的操作条并替换成最新状态（比如从"待处理"变成"已保留"） */
@@ -1031,15 +1007,16 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
         messageBuffer.replace(start, end + endMarker.length, renderChangeActionBar(changeId))
     }
 
-    private fun renderAssistantBubble(content: String): String {
-        val rendered = renderContentWithCodeBlocks(content)
+    private fun renderAssistantBubble(content: String, finalized: Boolean = false): String {
+        val rendered = renderContentWithCodeBlocks(content, finalized)
         return """
-            <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="left">
-              <div style="color:#888; font-size:10px; margin:6px 0 2px 4px;">AI</div>
-              <table cellpadding="6" cellspacing="0" style="background-color:#3c3f41; border-radius:6px;">
-                <tr><td style="color:#dddddd;">$rendered</td></tr>
-              </table>
-            </td></tr></table>
+            <div class="msg-row assistant">
+              <div class="avatar assistant-avatar">AI</div>
+              <div class="bubble-col">
+                <div class="bubble-name">Oli Coder</div>
+                <div class="bubble assistant-bubble">$rendered</div>
+              </div>
+            </div>
             """.trimIndent()
     }
 
@@ -1048,7 +1025,7 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
      * 流式输出中途如果代码围栏还没闭合（``` 数量是奇数），最后一段也按代码块处理，
      * 这样打字机效果里代码块会从一开始就是"代码框"的样子，而不是先出纯文本再突然变代码框。
      */
-    private fun renderContentWithCodeBlocks(content: String): String {
+    private fun renderContentWithCodeBlocks(content: String, finalized: Boolean): String {
         val segments = content.split("```")
         val sb = StringBuilder()
         segments.forEachIndexed { index, segment ->
@@ -1058,30 +1035,42 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
                 val firstNewline = segment.indexOf('\n')
                 val lang = if (firstNewline >= 0) segment.substring(0, firstNewline).trim() else segment.trim()
                 val code = if (firstNewline >= 0) segment.substring(firstNewline + 1) else ""
-                sb.append(renderCodeBlockHtml(code, lang))
+                // 只有在流式输出结束、内容已经定稿时才登记进 pendingCodeBlocks 并显示"复制"按钮。
+                // 打字机效果中途每收到一个 token 都会整段重新渲染，如果这时候也 add 进去，
+                // 同一段代码会被重复登记很多次，下标全乱掉。
+                val copyIdx = if (finalized) {
+                    pendingCodeBlocks.add(code)
+                    pendingCodeBlocks.size - 1
+                } else null
+                sb.append(renderCodeBlockHtml(code, lang, copyIdx))
             }
         }
         return sb.toString()
     }
 
-    private fun renderCodeBlockHtml(code: String, lang: String): String {
+    private fun renderCodeBlockHtml(code: String, lang: String, copyIndex: Int?): String {
         val escapedCode = code
             .replace("&", "&amp;")
             .replace("<", "&lt;")
             .replace(">", "&gt;")
-        val langLabel = if (lang.isNotBlank())
-            "<div style=\"color:#8a8f98; font-size:9px; margin:3px 0 1px 2px;\">${escapeHtml(lang)}</div>"
-        else ""
+        val displayLang = if (lang.isNotBlank()) escapeHtml(lang) else "plaintext"
         // highlight.js 通过 <code class="language-xxx"> 识别语言；语言名不合法或为空时它会自动检测，
         // 所以这里即使拿不到明确的语言标记也不影响高亮，只是可能不那么精准。
         val hljsLang = lang.trim().lowercase().ifBlank { "plaintext" }
-        return """<div style="margin:2px 0;">$langLabel<pre style="background-color:#1e1f22; border-radius:5px; margin:0;"><code class="language-$hljsLang" style="font-family:Monospaced;">$escapedCode</code></pre></div>"""
+        val copyLink = if (copyIndex != null) "<a href=\"copy:$copyIndex\">📋 复制</a>" else ""
+        return """
+            <div class="code-block">
+              <div class="code-header">
+                <span class="code-lang">$displayLang</span>
+                <span class="code-actions">$copyLink</span>
+              </div>
+              <pre><code class="language-$hljsLang">$escapedCode</code></pre>
+            </div>
+        """.trimIndent()
     }
 
     private fun appendSystemNotice(text: String) {
-        messageBuffer.append(
-            """<table width="100%"><tr><td align="center"><i style="color:#999; font-size:11px;">${escapeHtml(text)}</i></td></tr></table>"""
-        )
+        messageBuffer.append("""<div class="sys-notice">${escapeHtml(text)}</div>""")
         renderTranscript()
     }
 
@@ -1096,6 +1085,12 @@ class ChatPanel(private val project: Project) : JPanel(BorderLayout()) {
 
     private fun handleHyperlink(description: String) {
         when {
+            description.startsWith("copy:") -> {
+                val idx = description.removePrefix("copy:").toIntOrNull() ?: return
+                val code = pendingCodeBlocks.getOrNull(idx) ?: return
+                Toolkit.getDefaultToolkit().systemClipboard.setContents(StringSelection(code), null)
+                statusLabel.text = "已复制代码到剪贴板"
+            }
             description.startsWith("apply:") -> {
                 val idx = description.removePrefix("apply:").toIntOrNull() ?: return
                 val code = pendingCodeBlocks.getOrNull(idx) ?: return

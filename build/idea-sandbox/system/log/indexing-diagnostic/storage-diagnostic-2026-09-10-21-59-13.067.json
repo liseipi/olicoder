@@ -6,12 +6,12 @@
       "load" : 90,
       "capacity" : 400
     },
-    "uncachedFileAccess" : 120,
+    "uncachedFileAccess" : 122,
     "maxRegisteredFiles" : 555,
     "maxCacheSizeInBytes" : 212877312,
     "totalCachedSizeInBytes" : 212877312,
     "pageHits" : 0,
-    "pageFastCacheHits" : 4614,
+    "pageFastCacheHits" : 4745,
     "pageLoadsAboveSizeThreshold" : 0,
     "regularPageLoads" : 208,
     "disposedBuffers" : 3,
@@ -4417,8 +4417,8 @@
             "moves" : 0,
             "leafPages" : 1,
             "maxSearchStepsInRequest" : 2,
-            "searchRequests" : 2611,
-            "searchSteps" : 181,
+            "searchRequests" : 2648,
+            "searchSteps" : 182,
             "pageCapacity" : 32768,
             "sizeInBytes" : 32768
           }

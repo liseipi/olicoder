@@ -1,10 +1,10 @@
 <application>
   <component name="ActionsLocalSummary">
     <e n="$SelectAll">
-      <i c="3" l="1789049031181" />
+      <i c="4" l="1789049106999" />
     </e>
     <e n="EditorBackSpace">
-      <i c="37" l="1789049076149" />
+      <i c="43" l="1789049112757" />
     </e>
     <e n="EditorCopy">
       <i c="5" l="1788221290715" />
@@ -19,7 +19,7 @@
       <i c="1" l="1789048933814" />
     </e>
     <e n="GotoAction">
-      <i c="2" l="1789049102930" />
+      <i c="3" l="1789049114323" />
     </e>
     <e n="NewElement">
       <i c="1" l="1788084317280" />
@@ -42,11 +42,17 @@
     <e n="com.intellij.openapi.fileEditor.impl.tabActions.CloseTab">
       <i c="2" l="1788966395802" />
     </e>
+    <e n="com.intellij.openapi.project.DumbAwareAction$SimpleDumbAwareAction">
+      <i c="1" l="1789049115514" />
+    </e>
     <e n="com.intellij.openapi.project.LightEditActionFactory$SimpleLightEditCompatibleAction">
       <i c="1" l="1789048893699" />
     </e>
+    <e n="com.intellij.toolWindow.ToolWindowHeader$HideAction">
+      <i c="1" l="1789049848435" />
+    </e>
     <e n="com.intellij.toolWindow.ToolWindowHeader$ShowOptionsAction">
-      <i c="2" l="1789048999976" />
+      <i c="3" l="1789049844298" />
     </e>
     <e n="com.intellij.ui.CommonActionsPanel$AddButton">
       <i c="1" l="1788058109458" />
